@@ -1,3 +1,5 @@
+import  { RESTGetAPIChannelMessagesResult } from  'discord-api-types/v10';
+
 
 export default class Discord {
 
@@ -20,7 +22,7 @@ export default class Discord {
 		})
 	}
 
-	async getMessages(channel_id: number, after: number|null = null, before: number|null = null, around: number|null = null, limit = 50) {
+	async getMessages(channel_id: number, after: number|null = null, before: number|null = null, around: number|null = null, limit = 50): Promise<Response> {
 		let urlParams = {
 			"limit": limit.toString()
 		};

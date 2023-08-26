@@ -5,6 +5,7 @@ import { MessageBatch } from '@cloudflare/workers-types';
 import { fixTwitter, parseChannels, downloadMedia, getFreshUrlForBucket } from './helpers';
 import { DiscordLinkState } from './DiscordLinkState';
 import { ArchivedImage, ArchiveRequest, Env, StandardArgs } from './types';
+import { RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
 
 const router = Router<IRequest, StandardArgs>();
 
@@ -44,28 +45,28 @@ router.get('/get_image/:message_id', async (request, env, discord, link_state) =
 // likely using kv or DO to track ?before message ID
 router.get('/run', async (request, env, discord) => {
 	let parsed_channels = parseChannels(env.ARCHIVE_CHANNELS);
-	let messages = await discord.getMessages(parsed_channels[0]);
+	let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(parsed_channels[0])).json();
 	let urls_to_download: ArchiveRequest[] = [];
 
 	// attachments are not in scope
-	(await messages.json()).forEach((message) => {
+	messages.forEach((message) => {
 		let archiveRequest: ArchiveRequest = {message_id: message.id, embeds: []};
 		message.embeds.forEach((embed) => {
-			if (embed.image) {
+			if (embed.image && embed.url && embed.image.proxy_url && embed.image.url) {
 				archiveRequest.embeds.push({
 					proxy_url: embed.image.proxy_url,
 					url: embed.image.url,
 					orig_url: fixTwitter(embed.url),
 					embed_json: JSON.stringify(embed),
 				});
-			} else if (embed.thumbnail) {
+			} else if (embed.thumbnail && embed.url && embed.thumbnail.proxy_url && embed.thumbnail.url) {
 				archiveRequest.embeds.push({
 					proxy_url: embed.thumbnail.proxy_url,
 					url: embed.thumbnail.url,
 					orig_url: fixTwitter(embed.url),
 					embed_json: JSON.stringify(embed),
 				});
-			} else if (embed.video) {
+			} else if (embed.video && embed.url && embed.video.proxy_url && embed.video.url) {
 				archiveRequest.embeds.push({
 					proxy_url: embed.video.proxy_url,
 					url: embed.video.url,

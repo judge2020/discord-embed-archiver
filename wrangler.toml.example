@@ -7,20 +7,23 @@ compatibility_date = "2023-08-14"
 # Docs: https://developers.cloudflare.com/workers/platform/environment-variables
 [vars]
 # "guildid": [channelid,channelid,threadid]
-ARCHIVE_CHANNELS = '{"123456": ["1111111111122222222", "3333333344444444444"]}'
+ARCHIVE_CHANNELS = '["1111111111122222222", "3333333344444444444"]'
+DISCORD_CLIENT_ID=11113333344444444411122222
+R2_BASE_URL = "https://pub-X.r2.dev"
 
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
 # Docs: https://developers.cloudflare.com/workers/runtime-apis/kv
-# [[kv_namespaces]]
-# binding = "discord_link_archiver_kvstore"
-# id = ""
-# preview_id = "notusedyet"
+[[kv_namespaces]]
+binding = "discord_link_archiver_kvstore"
+id = ""
+preview_id = "notusedyet"
 
 # Bind an R2 Bucket. Use R2 to store arbitrarily large blobs of data, such as files.
 # Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
-# [[r2_buckets]]
-# binding = "MY_BUCKET"
-# bucket_name = "my-bucket"
+[[r2_buckets]]
+binding = "MY_BUCKET"
+bucket_name = "my-bucket"
+preview_name = "my-bucket-my-preview"
 
 # Bind a Queue producer. Use this binding to schedule an arbitrary task that may be processed later by a Queue consumer.
 # Docs: https://developers.cloudflare.com/queues/get-started

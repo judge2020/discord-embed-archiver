@@ -9,3 +9,6 @@ Desired functionality:
 - [ ] Cron: every 24 hours, go through every channel configured and archive all embed images from the past 24 hours
 - [ ] Backfill: A way to trigger backfilling an entire channel using a slow queue (to avoid rate limits)
 
+Possibly:
+
+- [ ] Basic dedupe (log embeds already saved, and point new messages with the same embed to the existing image URL)

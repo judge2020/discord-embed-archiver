@@ -26,31 +26,18 @@ router.get('/get/:message_id', async (request, env, discord, link_state) => {
 	let message_id = request.params.message_id;
 	return {...{base_url: env.R2_BASE_URL}, ...(await link_state.getMessageMetadata(message_id))};
 });
-router.get('/get_image/:message_id', async (request, env, discord, link_state) => {
-	let message_id = request.params.message_id;
-
-	let metadata = await link_state.getMessageMetadata(message_id);
-
-	let bucketUrl = getFreshUrlForBucket(metadata.message_id);
-
-	let downloaded_media = await downloadMedia(metadata.embeds[0].url, metadata.embeds[0].proxy_url);
-	await env.DISCORD_IMAGE_BUCKET.put(bucketUrl, (await downloaded_media.response.arrayBuffer()));
-
-	const object = await env.DISCORD_IMAGE_BUCKET.get(bucketUrl);
-
-	return new Response(object.body, {headers: {'etag': object.httpEtag}})
-});
 
 // todo: change this into a way to backfill
 // likely using kv or DO to track ?before message ID
 router.get('/run', async (request, env, discord) => {
 	let parsed_channels = parseChannels(env.ARCHIVE_CHANNELS);
-	let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(parsed_channels[0])).json();
+	let channel_id = parsed_channels[0];
+	let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id)).json();
 	let urls_to_download: ArchiveRequest[] = [];
 
 	// attachments are not in scope
 	messages.forEach((message) => {
-		let archiveRequest: ArchiveRequest = {message_id: message.id, embeds: []};
+		let archiveRequest: ArchiveRequest = {channel_id: channel_id, message_id: message.id, embeds: []};
 		message.embeds.forEach((embed) => {
 			if (embed.image && embed.url && embed.image.proxy_url && embed.image.url) {
 				archiveRequest.embeds.push({
@@ -79,8 +66,6 @@ router.get('/run', async (request, env, discord) => {
 			urls_to_download.push(archiveRequest);
 		}
 	});
-	env.DOWNLOAD_QUEUE.send(urls_to_download[1]);
-	return urls_to_download;
 
 	urls_to_download.forEach((download_request) => {
 		env.DOWNLOAD_QUEUE.send(download_request);
@@ -114,34 +99,37 @@ export default {
 			let request: ArchiveRequest = message.body;
 			console.log("Consuming " + request.message_id);
 			let already_archived = (await link_state.messageAlreadyArchived(request.message_id));
-			if (!already_archived) {
+			if (already_archived) {
+				console.log("Already archived", request.message_id);
+				continue;
+			} else {
 
 				let images: ArchivedImage[] = [];
 
-				for(const embed of request.embeds) {
+				for (const embed of request.embeds) {
 					let downloaded_media = await downloadMedia(embed.url, embed.proxy_url);
 					if (!downloaded_media.success) {
-						console.log("Download media did not succeed for message" + request.message_id);
+						console.log('Download media did not succeed for message' + request.message_id);
 						// todo use the kv metadata to track num tries, and stop after x retries
 						continue;
 					}
 
-					let bucketUrl = getFreshUrlForBucket(request.message_id);
+					let bucketUrl = getFreshUrlForBucket(request.channel_id, request.message_id);
 
 					await env.DISCORD_IMAGE_BUCKET.put(bucketUrl, (await downloaded_media.response.arrayBuffer()), {
 						httpMetadata: {
-							contentType: downloaded_media.response.headers.get("content-type"),
-							cacheControl: "public",
+							contentType: downloaded_media.response.headers.get('content-type'),
+							cacheControl: 'public'
 						}
 					});
 
 					images.push({
 						image_key: bucketUrl,
-						source_url: downloaded_media.used_backup ? request.embeds[0].proxy_url : request.embeds[0].url,
-						contentType: downloaded_media.response.headers.get("content-type"),
-						contentDisposition: downloaded_media.response.headers.get("content-disposition"),
-						contentLength: downloaded_media.response.headers.get("content-length"),
-					})
+						source_url: downloaded_media.used_backup ? embed.proxy_url : embed.url,
+						contentType: downloaded_media.response.headers.get('content-type'),
+						contentDisposition: downloaded_media.response.headers.get('content-disposition'),
+						contentLength: downloaded_media.response.headers.get('content-length')
+					});
 				}
 
 
@@ -149,7 +137,7 @@ export default {
 					images: images,
 					archive_request: request
 				});
-				console.log("archived metadata for" + request.message_id);
+				console.log('archived metadata for' + request.message_id);
 			}
 			// todo: download and put in r2 and/or durable objects
 			message.ack();

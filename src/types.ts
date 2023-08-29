@@ -2,7 +2,7 @@ import { KVNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
 import Discord from './discord';
 import { DiscordLinkState } from './DiscordLinkState';
 
-export type MessageId = string|number;
+export type DSnowflake = string|number;
 
 export type Embed = {
 	proxy_url: string;
@@ -11,7 +11,8 @@ export type Embed = {
 	embed_json: string;
 }
 export type ArchiveRequest = {
-	message_id: MessageId;
+	message_id: DSnowflake;
+	channel_id: DSnowflake;
 	embeds: Embed[];
 }
 

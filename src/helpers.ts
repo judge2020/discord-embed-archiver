@@ -1,4 +1,4 @@
-import { DownloadMediaResult, MessageId } from './types';
+import { DownloadMediaResult, DSnowflake } from './types';
 
 const twitter_hostnames = [
 	"twitter.com",
@@ -59,11 +59,11 @@ export async function downloadMedia(url: string, backup_url: string): Promise<Do
 	}
 }
 
-export function messageJsonKey(message_id: MessageId) {
+export function messageJsonKey(message_id: DSnowflake) {
 	return `messages/${message_id}/metadata.json`;
 }
 
-export function getFreshUrlForBucket(message_id: MessageId) {
-	return `messages/${message_id}/`
+export function getFreshUrlForBucket(channel_id: DSnowflake, message_id: DSnowflake) {
+	return `${channel_id}/${message_id}/`
 		+ Math.random().toString(36).slice(2, 9) + Math.random().toString(36).slice(2, 9);
 }

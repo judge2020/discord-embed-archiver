@@ -1,4 +1,5 @@
-import { DownloadMediaResult, DSnowflake } from './types';
+import { ArchiveRequest, DownloadMediaResult, DSnowflake } from './types';
+import { APIMessage } from 'discord-api-types/v10';
 
 const twitter_hostnames = [
 	"twitter.com",
@@ -66,4 +67,34 @@ export function messageJsonKey(message_id: DSnowflake) {
 export function getFreshUrlForBucket(channel_id: DSnowflake, message_id: DSnowflake) {
 	return `${channel_id}/${message_id}/`
 		+ Math.random().toString(36).slice(2, 9) + Math.random().toString(36).slice(2, 9);
+}
+
+export function extractArchiveRequestFromMessage(channel_id: DSnowflake, message: APIMessage): ArchiveRequest | null {
+	let archiveRequest: ArchiveRequest = {channel_id: channel_id, message_id: message.id, embeds: []};
+	for (let embed of message.embeds) {
+		console.log("a1");
+		if (embed.image && embed.url && embed.image.proxy_url && embed.image.url) {
+			archiveRequest.embeds.push({
+				proxy_url: embed.image.proxy_url,
+				url: embed.image.url,
+				orig_url: fixTwitter(embed.url),
+				embed_json: JSON.stringify(embed),
+			});
+		} else if (embed.thumbnail && embed.url && embed.thumbnail.proxy_url && embed.thumbnail.url) {
+			archiveRequest.embeds.push({
+				proxy_url: embed.thumbnail.proxy_url,
+				url: embed.thumbnail.url,
+				orig_url: fixTwitter(embed.url),
+				embed_json: JSON.stringify(embed),
+			});
+		} else if (embed.video && embed.url && embed.video.proxy_url && embed.video.url) {
+			archiveRequest.embeds.push({
+				proxy_url: embed.video.proxy_url,
+				url: embed.video.url,
+				orig_url: fixTwitter(embed.url),
+				embed_json: JSON.stringify(embed),
+			});
+		}
+	}
+	return archiveRequest.embeds.length >= 1 ? archiveRequest : null;
 }

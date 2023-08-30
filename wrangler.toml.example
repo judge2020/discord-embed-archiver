@@ -9,6 +9,7 @@ compatibility_date = "2023-08-14"
 # "guildid": [channelid,channelid,threadid]
 ARCHIVE_CHANNELS = '["1111111111122222222", "3333333344444444444"]'
 DISCORD_CLIENT_ID=11113333344444444411122222
+DISCORD_CLIENT_PUB_KEY = "hjgk267iu54erjkhotr3i67yutroe"
 R2_BASE_URL = "https://pub-X.r2.dev"
 
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.

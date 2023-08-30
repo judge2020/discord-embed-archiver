@@ -1,5 +1,5 @@
 import { KVNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
-import Discord from './discord';
+import DiscordApi from './DiscordApi';
 import { DiscordLinkState } from './DiscordLinkState';
 
 export type DSnowflake = string|number;
@@ -26,6 +26,7 @@ export type ArchivedImage = {
 
 export type MessageMetadataRequest = {
 	images: ArchivedImage[];
+	timestamp: string;
 	archive_request: ArchiveRequest;
 }
 
@@ -34,6 +35,7 @@ export interface Env {
 	DISCORD_TOKEN: string;
 	ARCHIVE_CHANNELS: string;
 	DISCORD_CLIENT_ID: string;
+	DISCORD_CLIENT_PUB_KEY: string;
 	R2_BASE_URL: string;
 	// Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
 	DiscordLinkStateKV: KVNamespace;
@@ -51,7 +53,7 @@ export interface Env {
 	DOWNLOAD_QUEUE: Queue<any>;
 }
 
-export type StandardArgs = [env: Env, discord: Discord, link_state: DiscordLinkState];
+export type StandardArgs = [env: Env, discord: DiscordApi, link_state: DiscordLinkState];
 
 export type DownloadMediaResult = {
 	success: boolean;

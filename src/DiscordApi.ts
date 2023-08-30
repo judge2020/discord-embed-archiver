@@ -1,7 +1,10 @@
-import  { RESTGetAPIChannelMessagesResult } from  'discord-api-types/v10';
+import {
+	APIApplicationCommand, Snowflake
+} from 'discord-api-types/v10';
+import { DSnowflake } from './types';
 
 
-export default class Discord {
+export default class DiscordApi {
 
 	private default_headers: HeadersInit;
 
@@ -9,7 +12,9 @@ export default class Discord {
 
 	constructor(token: string) {
 		this.default_headers = {
-			"authorization": "Bot " + token
+			"authorization": "Bot " + token,
+			"content-type": "application/json",
+			"accept": "application/json",
 		};
 	}
 
@@ -19,6 +24,16 @@ export default class Discord {
 		return fetch(url, {
 			method: "PUT",
 			headers: this.default_headers,
+		})
+	}
+
+
+	async createGlobalAppCommand(client_id: DSnowflake, applicationCommand: any) {
+		let url = `${this.api_base}/applications/${client_id}/commands`;
+		return fetch(url, {
+			method: "POST",
+			headers: this.default_headers,
+			body: JSON.stringify(applicationCommand)
 		})
 	}
 

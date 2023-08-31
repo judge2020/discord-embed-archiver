@@ -1,5 +1,5 @@
-import { ArchiveRequest, DownloadMediaResult, DSnowflake } from './types';
-import { APIMessage } from 'discord-api-types/v10';
+import { ArchiveRequest, DownloadMediaResult, DSnowflake, EmbedArchiveRequest } from './types';
+import { APIEmbed, APIMessage } from 'discord-api-types/v10';
 
 const twitter_hostnames = [
 	"twitter.com",
@@ -25,7 +25,7 @@ export function fixTwitter(url: string) {
 }
 
 
-export function parseChannels(channels: string): number[] {
+export function parseChannels(channels: string): string[] {
 	return JSON.parse(channels);
 }
 
@@ -69,32 +69,29 @@ export function getFreshUrlForBucket(channel_id: DSnowflake, message_id: DSnowfl
 		+ Math.random().toString(36).slice(2, 9) + Math.random().toString(36).slice(2, 9);
 }
 
-export function extractArchiveRequestFromMessage(channel_id: DSnowflake, message: APIMessage): ArchiveRequest | null {
-	let archiveRequest: ArchiveRequest = {channel_id: channel_id, message_id: message.id, embeds: []};
-	for (let embed of message.embeds) {
-		console.log("a1");
-		if (embed.image && embed.url && embed.image.proxy_url && embed.image.url) {
-			archiveRequest.embeds.push({
-				proxy_url: embed.image.proxy_url,
-				url: embed.image.url,
-				orig_url: fixTwitter(embed.url),
-				embed_json: JSON.stringify(embed),
-			});
-		} else if (embed.thumbnail && embed.url && embed.thumbnail.proxy_url && embed.thumbnail.url) {
-			archiveRequest.embeds.push({
-				proxy_url: embed.thumbnail.proxy_url,
-				url: embed.thumbnail.url,
-				orig_url: fixTwitter(embed.url),
-				embed_json: JSON.stringify(embed),
-			});
-		} else if (embed.video && embed.url && embed.video.proxy_url && embed.video.url) {
-			archiveRequest.embeds.push({
-				proxy_url: embed.video.proxy_url,
-				url: embed.video.url,
-				orig_url: fixTwitter(embed.url),
-				embed_json: JSON.stringify(embed),
-			});
+export function getImageFromEmbed(embed: APIEmbed): EmbedArchiveRequest | null {
+	if (embed.image && embed.url && embed.image.proxy_url && embed.image.url) {
+		return {
+			proxy_url: embed.image.proxy_url,
+			url: embed.image.url,
+			orig_url: fixTwitter(embed.url),
+		};
+	} else if (embed.thumbnail && embed.url && embed.thumbnail.proxy_url && embed.thumbnail.url) {
+		return {
+			proxy_url: embed.thumbnail.proxy_url,
+			url: embed.thumbnail.url,
+			orig_url: fixTwitter(embed.url),
+		}
+	} else if (embed.video && embed.url && embed.video.proxy_url && embed.video.url) {
+		return {
+			proxy_url: embed.video.proxy_url,
+			url: embed.video.url,
+			orig_url: fixTwitter(embed.url),
 		}
 	}
-	return archiveRequest.embeds.length >= 1 ? archiveRequest : null;
+	return null;
+}
+
+export function sleep(milliseconds) {
+	return new Promise(r=>setTimeout(r, milliseconds));
 }

@@ -37,18 +37,18 @@ export default class DiscordApi {
 		})
 	}
 
-	async getMessages(channel_id: number, after: number|null = null, before: number|null = null, around: number|null = null, limit = 50): Promise<Response> {
+	async getMessages(channel_id: DSnowflake, after: DSnowflake|null = null, before: DSnowflake|null = null, around: DSnowflake|null = null, limit = 50): Promise<Response> {
 		let urlParams = {
 			"limit": limit.toString()
 		};
 		if (after !== null) {
-			urlParams["after"] = after.toString();
+			urlParams["after"] = after;
 		}
 		if (before !== null) {
-			urlParams["before"] = before.toString();
+			urlParams["before"] = before;
 		}
 		if (around !== null) {
-			urlParams["around"] = around.toString();
+			urlParams["around"] = around;
 		}
 		let queryString = new URLSearchParams(urlParams).toString();
 		let url = `${this.api_base}/channels/${channel_id}/messages?${queryString}`;

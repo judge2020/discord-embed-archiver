@@ -1,19 +1,19 @@
 import { KVNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
 import DiscordApi from './DiscordApi';
 import { DiscordLinkState } from './DiscordLinkState';
+import { APIMessage } from 'discord-api-types/v10';
 
-export type DSnowflake = string|number;
+export type DSnowflake = string;
 
-export type Embed = {
+export type EmbedArchiveRequest = {
 	proxy_url: string;
 	url: string;
 	orig_url: string;
-	embed_json: string;
 }
+
 export type ArchiveRequest = {
-	message_id: DSnowflake;
 	channel_id: DSnowflake;
-	embeds: Embed[];
+	message: APIMessage;
 }
 
 export type ArchivedImage = {
@@ -30,6 +30,11 @@ export type MessageMetadataRequest = {
 	archive_request: ArchiveRequest;
 }
 
+export type ChannelArchiveState = {
+	channel_id: DSnowflake;
+	latest_archive: DSnowflake;
+}
+
 export interface Env {
 	// SECRETS
 	DISCORD_TOKEN: string;
@@ -39,6 +44,7 @@ export interface Env {
 	R2_BASE_URL: string;
 	// Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
 	DiscordLinkStateKV: KVNamespace;
+	DiscordArchiveStateKV: KVNamespace;
 	//
 	// Example binding to Durable Object. Learn more at https://developers.cloudflare.com/workers/runtime-apis/durable-objects/
 	// MY_DURABLE_OBJECT: DurableObjectNamespace;

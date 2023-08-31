@@ -15,9 +15,14 @@ R2_BASE_URL = "https://pub-X.r2.dev"
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
 # Docs: https://developers.cloudflare.com/workers/runtime-apis/kv
 [[kv_namespaces]]
-binding = "discord_link_archiver_kvstore"
+binding = "DiscordLinkStateKV"
 id = ""
-preview_id = "notusedyet"
+preview_id = ""
+
+[[kv_namespaces]]
+binding = "DiscordArchiveStateKV"
+id = ""
+preview_id = ""
 
 # Bind an R2 Bucket. Use R2 to store arbitrarily large blobs of data, such as files.
 # Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/

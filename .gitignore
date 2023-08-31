@@ -137,3 +137,6 @@ dist
 wrangler.toml
 !wrangler.toml.example
 .wrangler/
+
+test*.http
+

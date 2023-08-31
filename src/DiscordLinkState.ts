@@ -1,6 +1,6 @@
 import { KVNamespace, R2Bucket } from '@cloudflare/workers-types';
 import { ArchivedImage, ArchiveRequest, DSnowflake, MessageMetadataRequest } from './types';
-import { downloadMedia, getFreshUrlForBucket, messageJsonKey } from './helpers';
+import { downloadMedia, getFreshUrlForBucket, getImageFromEmbed, messageJsonKey } from './helpers';
 import { APIEmbed, APIMessage } from 'discord-api-types/v10';
 
 export class DiscordLinkState {
@@ -18,7 +18,7 @@ export class DiscordLinkState {
 	}
 
 	async setMessageMetadata(messageMetadataRequest: MessageMetadataRequest) {
-		return this.DiscordLinkStateKV.put(messageJsonKey(messageMetadataRequest.archive_request.message_id), JSON.stringify(messageMetadataRequest));
+		return this.DiscordLinkStateKV.put(messageJsonKey(messageMetadataRequest.archive_request.message.id), JSON.stringify(messageMetadataRequest));
 	}
 
 	async getMessageMetadata(message_id: DSnowflake): Promise<MessageMetadataRequest | null> {
@@ -32,15 +32,20 @@ export class DiscordLinkState {
 	async archiveMessage(request: ArchiveRequest): Promise<MessageMetadataRequest> {
 		let images: ArchivedImage[] = [];
 
-		for (const embed of request.embeds) {
-			let downloaded_media = await downloadMedia(embed.url, embed.proxy_url);
+		for (const embed of request.message.embeds) {
+			let extracted_embed = getImageFromEmbed(embed);
+			if (!extracted_embed) {
+				console.log("No image in embed " + request.message.id);
+				continue;
+			}
+			let downloaded_media = await downloadMedia(extracted_embed.url, extracted_embed.proxy_url);
 			if (!downloaded_media.success) {
-				console.log('Download media did not succeed for message' + request.message_id);
+				console.log('Download media did not succeed for message' + request.message.id);
 				// todo use the kv metadata to track num tries, and stop after x retries
 				continue;
 			}
 
-			let bucketUrl = getFreshUrlForBucket(request.channel_id, request.message_id);
+			let bucketUrl = getFreshUrlForBucket(request.channel_id, request.message.id);
 
 			await this.DISCORD_IMAGE_BUCKET.put(bucketUrl, (await downloaded_media.response.arrayBuffer()), {
 				httpMetadata: {
@@ -51,7 +56,7 @@ export class DiscordLinkState {
 
 			images.push({
 				image_key: bucketUrl,
-				source_url: downloaded_media.used_backup ? embed.proxy_url : embed.url,
+				source_url: downloaded_media.used_backup ? extracted_embed.proxy_url : extracted_embed.url,
 				contentType: downloaded_media.response.headers.get('content-type'),
 				contentDisposition: downloaded_media.response.headers.get('content-disposition'),
 				contentLength: downloaded_media.response.headers.get('content-length')
@@ -63,7 +68,9 @@ export class DiscordLinkState {
 			timestamp: new Date().toISOString(),
 			archive_request: request
 		};
+
 		await this.setMessageMetadata(returned_metadata);
+
 		return returned_metadata;
 	}
 }

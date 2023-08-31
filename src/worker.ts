@@ -3,11 +3,12 @@ import { error, IRequest, json, Router } from 'itty-router';
 import DiscordApi from './DiscordApi';
 import {verifyKey} from 'discord-interactions';
 import { MessageBatch } from '@cloudflare/workers-types';
-import { parseChannels } from './helpers';
+import { parseChannels, sleep } from './helpers';
 import { DiscordLinkState } from './DiscordLinkState';
 import { ArchivedImage, ArchiveRequest, Env, StandardArgs } from './types';
 import { RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
 import { DiscordInteractHandler } from './DiscordInteractHandler';
+import { DiscordArchiveState } from './ChannelArchiveState';
 
 const router = Router<IRequest, StandardArgs>();
 
@@ -65,24 +66,20 @@ router.get('/run', async (request, env, discord) => {
 	let channel_id = parsed_channels[0];
 	let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id)).json();
 
-	let urls_to_download = [];
 	messages.forEach((message) => {
-		let archiveRequest: ArchiveRequest = {channel_id: channel_id, message_id: message.id, embeds: []};
-		if (archiveRequest) {
-			urls_to_download.push(archiveRequest);
-		}
+		let archiveRequest: ArchiveRequest = {
+			channel_id: channel_id,
+			message: message
+		};
+		env.DOWNLOAD_QUEUE.send(archiveRequest);
 	});
-
-	urls_to_download.forEach((download_request) => {
-		env.DOWNLOAD_QUEUE.send(download_request);
-	})
-
-	return urls_to_download;
+	return "Done";
 });
 
 
 let discord: DiscordApi;
 let link_state: DiscordLinkState;
+let archive_state: DiscordArchiveState;
 
 // noinspection JSUnusedGlobalSymbols
 export default {
@@ -102,18 +99,85 @@ export default {
 		// it's important to await things here, since we can only have 6 simultaneous connections open to other CF services (R2 and KV)
 		for(const message of batch.messages) {
 			let request: ArchiveRequest = message.body;
-			console.log("Consuming " + request.message_id);
-			let already_archived = (await link_state.messageAlreadyArchived(request.message_id));
+			console.log("Consuming " + request.message.id);
+			let already_archived = (await link_state.messageAlreadyArchived(request.message.id));
 			if (already_archived) {
-				console.log("Already archived", request.message_id);
+				console.log("Already archived", request.message.id);
 				continue;
 			} else {
 				await link_state.archiveMessage(request);
-				console.log('archived metadata for' + request.message_id);
+				console.log('archived metadata for' + request.message.id);
 			}
 			// todo: download and put in r2 and/or durable objects
 			message.ack();
 		}
 		return;
 	},
+
+	async scheduled(event, env: Env, ctx) {
+		let parsed_channels = parseChannels(env.ARCHIVE_CHANNELS);
+		archive_state = archive_state ? archive_state : new DiscordArchiveState(env.DiscordArchiveStateKV);
+		discord = discord ? discord : new DiscordApi(env.DISCORD_TOKEN);
+		switch (event.cron) {
+			// todo backfill: effectively the opposite of this - running a cron, say every third minute, using `before` instead of `after` - but only if channel is marked for backfilling
+			 case "48 */2 * * *":
+			default:
+				// main cron for updating channels
+				for (const channel_id of parsed_channels) {
+					let channel_state = await archive_state.getArchiveState(channel_id);
+					console.log(channel_state);
+					if (!channel_state) {
+						// start with just the latest 100 IDs
+						channel_state = {
+							channel_id: channel_id,
+							latest_archive: "1",
+						};
+						let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id, null, null, null, 100)).json();
+						for (let message of messages) {
+							let archiveRequest: ArchiveRequest = {
+								channel_id: channel_id,
+								message: message
+							};
+							await env.DOWNLOAD_QUEUE.send(archiveRequest);
+							if (BigInt(channel_state.latest_archive) < BigInt(message.id)) {
+								channel_state.latest_archive = message.id;
+							}
+						}
+					}
+					else {
+						// go back messages
+						let shouldStop = false;
+						while (!shouldStop) {
+							let response = await (await discord.getMessages(channel_id, channel_state.latest_archive, null, null, 100));
+							let _rate_limit = Number(response.headers.get("X-RateLimit-Limit"));
+							let _rate_remaining = Number(response.headers.get("X-RateLimit-Remaining"));
+							let _rate_reset_after = Number(response.headers.get("X-RateLimit-Reset-After"));
+							let _rate_reset_bucket = Number(response.headers.get("X-RateLimit-Bucket")); // seems to be the same for querying channels in a guild
+							if (_rate_remaining < 2) {
+								// If Discord pushes us to waiting over 5 seconds for get messages, it's probably not a good idea to keep hitting it
+								if (_rate_reset_after > 5) {
+									shouldStop = true;
+								}
+								await sleep(_rate_reset_after * 1000);
+							}
+							let messages: RESTGetAPIChannelMessagesResult = await response.json();
+							if (messages.length == 0) {
+								shouldStop = true;
+							}
+							for (let message of messages) {
+								let archiveRequest: ArchiveRequest = {
+									channel_id: channel_id,
+									message: message
+								};
+								await env.DOWNLOAD_QUEUE.send(archiveRequest);
+								if (BigInt(channel_state.latest_archive) < BigInt(message.id)) {
+									channel_state.latest_archive = message.id;
+								}
+							}
+						}
+					}
+					await archive_state.setArchiveState(channel_state);
+				}
+		 }
+	}
 };

@@ -9,7 +9,7 @@ import {
 	InteractionResponseType,
 	InteractionType
 } from 'discord-api-types/v10';
-import { ArchivedImage, ArchiveRequest, DSnowflake, Embed, Env } from './types';
+import { ArchivedImage, ArchiveRequest, DSnowflake, Env } from './types';
 import { extractArchiveRequestFromMessage, parseChannels } from './helpers';
 
 const MESSAGE_COMMAND_RETRIEVE = 'Retrieve Archive';
@@ -143,7 +143,10 @@ export class DiscordInteractHandler {
 			return errorInteractResponse('❌ Already archived');
 		}
 
-		let archiveRequest = extractArchiveRequestFromMessage(json.channel_id!, message);
+		let archiveRequest: ArchiveRequest = {
+			channel_id: json.channel_id!,
+			message: message,
+		};
 		if (!archiveRequest) {
 			return errorInteractResponse('❌ No embeds on message. Attachments and non-embedded links are not archived.');
 		}

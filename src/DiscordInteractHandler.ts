@@ -4,7 +4,7 @@ import {
 	APIEmbed,
 	APIEmbedField,
 	APIInteraction,
-	APIInteractionResponse,
+	APIInteractionResponse, APIMessage,
 	ApplicationCommandType,
 	InteractionResponseType,
 	InteractionType
@@ -41,6 +41,18 @@ function errorInteractResponse(content: string): APIInteractionResponse {
 	};
 }
 
+function successInteractResponse(content: string, embeds: APIEmbed[] = []): APIInteractionResponse {
+	return {
+		type: InteractionResponseType.ChannelMessageWithSource,
+		data: {
+			content: content,
+			embeds: embeds,
+			flags: 64,
+			allowed_mentions: { parse: [] }
+		}
+	};
+}
+
 export class DiscordInteractHandler {
 
 	env: Env;
@@ -64,102 +76,12 @@ export class DiscordInteractHandler {
 		}
 		else if (json.type == InteractionType.ApplicationCommand) {
 			// noinspection TypeScriptUnresolvedReference Seems to not include messages hmm
-			let messages = json.data.resolved.messages;
-			let message_id = Object.keys(messages)[0];
+			let message = json.data.resolved.messages[Object.keys(json.data.resolved.messages)[0]];
 			switch (json.data.name) {
 				case MESSAGE_COMMAND_ARCHIVE_NOW:
-					if (!this.parsedChannels.includes(json.channel_id)) {
-						return errorInteractResponse("❌ This channel is not approved for archiving");
-					}
-					if ((await this.discordLinkState.messageAlreadyArchived(message_id))) {
-						return errorInteractResponse("❌ Already archived");
-					}
-					let archiveRequest = extractArchiveRequestFromMessage(json.channel_id, messages[message_id]);
-					if (!archiveRequest) {
-						return {
-							type: InteractionResponseType.ChannelMessageWithSource,
-							data: {
-								content: "❌ Already archived",
-								flags: 64,
-								allowed_mentions: { parse: []}
-							}
-						};
-					}
-					let archived = await this.discordLinkState.archiveMessage(archiveRequest);
-					let out__embeds: APIEmbed[] = [];
-					for (let image of archived.images) {
-						out__embeds.push({
-							fields: [
-								{
-									inline: true,
-									name: "Original URL_" + archived.images.indexOf(image).toString(),
-									value: image.source_url,
-								},
-								{
-									inline: true,
-									name: "Archive URL_" + archived.images.indexOf(image).toString(),
-									value: `${this.env.R2_BASE_URL}/${image.image_key}`,
-								}
-							]
-						})
-					}
-					return {
-						type: InteractionResponseType.ChannelMessageWithSource,
-						data: {
-							content: "✅ Successfully archived",
-							embeds: out__embeds,
-							flags: 64,
-							allowed_mentions: { parse: []}
-						}
-					}
+					return await this.handleArchiveNow(json, message);
 				case MESSAGE_COMMAND_RETRIEVE:
-					let archive_metadata = await this.discordLinkState.getMessageMetadata(message_id);
-					if (archive_metadata == null) {
-						let content = "❌ Unable to retrieve archive for this message. Likely Reason: ";
-						if (messages[message_id]["embeds"].length == 0) {
-							content += "No embeds on message. Attachments and non-embedded links are not archived.";
-						}
-						else if (!this.parsedChannels.includes(json.channel_id)) {
-							content += "Message is not in an approved archiving channel or thread";
-						}
-						else {
-							content += "Has not been archived yet.";
-						}
-						return {
-							type: InteractionResponseType.ChannelMessageWithSource,
-							data: {
-								content: content,
-								flags: 64,
-								allowed_mentions: { parse: []}
-							}
-						}
-					}
-					let out_embeds: APIEmbed[] = [];
-					for (let image of archive_metadata.images) {
-						out_embeds.push({
-							fields: [
-								{
-									inline: true,
-									name: "Original URL_" + archive_metadata.images.indexOf(image).toString(),
-									value: image.source_url,
-								},
-								{
-									inline: true,
-									name: "Archive URL_" + archive_metadata.images.indexOf(image).toString(),
-									value: `${this.env.R2_BASE_URL}/${image.image_key}`,
-								}
-							]
-						})
-					}
-
-					return {
-						type: InteractionResponseType.ChannelMessageWithSource,
-						data: {
-							embeds: out_embeds,
-							flags: 64,
-							allowed_mentions: { parse: []}
-						}
-					}
+					return await this.handleRetrieve(json, message);
 				default:
 					return {
 						type: InteractionResponseType.ChannelMessageWithSource,
@@ -174,6 +96,77 @@ export class DiscordInteractHandler {
 		return {
 			type: InteractionResponseType.Pong
 		}
+	}
+
+	private async handleRetrieve(json: APIInteraction, message: APIMessage): Promise<APIInteractionResponse> {
+		let archive_metadata = await this.discordLinkState.getMessageMetadata(message.id);
+		if (archive_metadata == null) {
+			let content = "❌ Unable to retrieve archive for this message. Likely Reason: ";
+			if (message.embeds.length == 0) {
+				content += "No embeds on message. Attachments and non-embedded links are not archived.";
+			}
+			else if (!this.parsedChannels.includes(json.channel_id!)) {
+				content += "Message is not in an approved archiving channel or thread";
+			}
+			else {
+				content += "Has not been archived yet.";
+			}
+			return errorInteractResponse(content);
+		}
+		let out_embeds: APIEmbed[] = [];
+		for (let image of archive_metadata.images) {
+			out_embeds.push({
+				fields: [
+					{
+						inline: true,
+						name: "Original URL_" + archive_metadata.images.indexOf(image).toString(),
+						value: image.source_url,
+					},
+					{
+						inline: true,
+						name: "Archive URL_" + archive_metadata.images.indexOf(image).toString(),
+						value: `${this.env.R2_BASE_URL}/${image.image_key}`,
+					}
+				]
+			})
+		}
+
+		return successInteractResponse("", out_embeds);
+	}
+
+	private async handleArchiveNow(json: APIInteraction, message: APIMessage): Promise<APIInteractionResponse> {
+		if (!this.parsedChannels.includes(json.channel_id!)) {
+			return errorInteractResponse('❌ This channel is not approved for archiving');
+		}
+
+		if ((await this.discordLinkState.messageAlreadyArchived(message.id))) {
+			return errorInteractResponse('❌ Already archived');
+		}
+
+		let archiveRequest = extractArchiveRequestFromMessage(json.channel_id!, message);
+		if (!archiveRequest) {
+			return errorInteractResponse('❌ No embeds on message. Attachments and non-embedded links are not archived.');
+		}
+
+		let archived = await this.discordLinkState.archiveMessage(archiveRequest);
+		let out__embeds: APIEmbed[] = [];
+		for (let image of archived.images) {
+			out__embeds.push({
+				fields: [
+					{
+						inline: true,
+						name: 'Original URL_' + archived.images.indexOf(image).toString(),
+						value: image.source_url
+					},
+					{
+						inline: true,
+						name: 'Archive URL_' + archived.images.indexOf(image).toString(),
+						value: `${this.env.R2_BASE_URL}/${image.image_key}`
+					}
+				]
+			});
+		}
+		return successInteractResponse("✅ Successfully archived", out__embeds);
 	}
 
 	async setupGlobals(client_id: DSnowflake) {

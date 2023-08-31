@@ -12,6 +12,9 @@ DISCORD_CLIENT_ID=11113333344444444411122222
 DISCORD_CLIENT_PUB_KEY = "hjgk267iu54erjkhotr3i67yutroe"
 R2_BASE_URL = "https://pub-X.r2.dev"
 
+[triggers]
+crons = [ "48 */2 * * *" ]
+
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
 # Docs: https://developers.cloudflare.com/workers/runtime-apis/kv
 [[kv_namespaces]]

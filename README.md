@@ -6,10 +6,9 @@ Desired functionality:
 
 - [X] Image archiving: Downloads embeds and attachments and store them in R2 bucket
 - [X] Image archive retrieval: Take a message ID and tie it back to (a number of) archived embed images (This will likely be achieved by integrating DiscordApi Interactions where a message button opens the archived image URL in-browser)
-- [ ] Cron: every 24 hours, go through every channel configured and archive all embed images from the past 24 hours
+- [X] Cron: every 2 hours, go through the channels configured and archive all recent embeds
 - [ ] Backfill: A way to trigger backfilling an entire channel using a slow queue (to avoid rate limits)
 - [ ] Code cleanup and organization
-
 
 Possibly:
 

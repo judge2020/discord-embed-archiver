@@ -48,6 +48,9 @@ export class DiscordArchiveState {
 				backfill_done: false,
 			};
 			let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id, null, null, null, 100)).json();
+			if (!(Symbol.iterator in Object(messages))) {
+				console.log("Potential error from Discord", messages);
+			}
 			for (let message of messages) {
 				let archiveRequest: ArchiveRequest = {
 					channel_id: channel_id,
@@ -77,6 +80,8 @@ export class DiscordArchiveState {
 					await (await discord.getMessages(channel_id, null, channel_state.earliest_archive || DEFAULT_EARLIEST, null, 100))
 					: await (await discord.getMessages(channel_id, channel_state.latest_archive || DEFAULT_LATEST, null, null, 100));
 
+				console.log("Discord API response status", response.status);
+
 				let rateHeaders = getRateHeaders(response.headers);
 
 				if (response.status == 429 || rateHeaders.remaining < 2) {
@@ -87,12 +92,18 @@ export class DiscordArchiveState {
 					await sleep(rateHeaders.reset_after * 1000);
 				}
 				let messages: RESTGetAPIChannelMessagesResult = await response.json();
+
+				if (!(Symbol.iterator in Object(messages))) {
+					console.log("Potential error from Discord", messages);
+				}
+
 				if (messages.length == 0) {
 					shouldStop = true;
 					if (backfill) {
 						channel_state.backfill_done = true;
 					}
 				}
+
 				for (let message of messages) {
 					let archiveRequest: ArchiveRequest = {
 						channel_id: channel_id,

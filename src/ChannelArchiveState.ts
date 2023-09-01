@@ -49,7 +49,7 @@ export class DiscordArchiveState {
 			};
 			let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id, null, null, null, 100)).json();
 			if (!(Symbol.iterator in Object(messages))) {
-				console.log("Potential error from Discord", messages);
+				throw new Error("Error from discord:" + JSON.stringify(messages));
 			}
 			for (let message of messages) {
 				let archiveRequest: ArchiveRequest = {
@@ -94,7 +94,7 @@ export class DiscordArchiveState {
 				let messages: RESTGetAPIChannelMessagesResult = await response.json();
 
 				if (!(Symbol.iterator in Object(messages))) {
-					console.log("Potential error from Discord", messages);
+					throw new Error("Error from discord:" + JSON.stringify(messages));
 				}
 
 				if (messages.length == 0) {

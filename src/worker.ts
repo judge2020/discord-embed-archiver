@@ -124,14 +124,24 @@ export default {
 				// main cron for updating channels
 				console.log("running periodic archive cron");
 				for (const channel_id of parsed_channels) {
-					await archive_state.processCron(channel_id, discord, env);
+					try {
+						await archive_state.processCron(channel_id, discord, env);
+					}
+					catch (e) {
+						console.log(`Failed to archive channel ${channel_id} with error ${e.toString()}`, e.stack)
+					}
 				}
 				return;
 			case "*/15 * * * *":
 				// backfill
 				console.log("running backfill cron");
 				for (const channel_id of parsed_channels) {
-					await archive_state.processCron(channel_id, discord, env);
+					try {
+						await archive_state.processCron(channel_id, discord, env, true);
+					}
+					catch (e) {
+						console.log(`Failed to archive channel ${channel_id} with error ${e.toString()}`, e.stack)
+					}
 				}
 				return;
 			default:

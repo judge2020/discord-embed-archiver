@@ -1,4 +1,4 @@
-import { ArchiveRequest, DownloadMediaResult, DSnowflake, EmbedArchiveRequest } from './types';
+import { ArchiveRequest, DownloadMediaResult, DSnowflake, EmbedArchiveRequest, RateLimitHeaders } from './types';
 import { APIEmbed, APIMessage } from 'discord-api-types/v10';
 
 const twitter_hostnames = [
@@ -94,4 +94,13 @@ export function getImageFromEmbed(embed: APIEmbed): EmbedArchiveRequest | null {
 
 export function sleep(milliseconds) {
 	return new Promise(r=>setTimeout(r, milliseconds));
+}
+
+export function getRateHeaders(headers: Headers): RateLimitHeaders {
+	return {
+		limit: Number(headers.get("X-RateLimit-Limit")),
+		remaining: Number(headers.get("X-RateLimit-Limit")),
+		reset_after: Number(headers.get("X-RateLimit-Limit")),
+		reset_bucket: Number(headers.get("X-RateLimit-Limit")), // seems to be the same for querying channels in a guild
+	}
 }

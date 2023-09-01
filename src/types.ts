@@ -32,7 +32,9 @@ export type MessageMetadataRequest = {
 
 export type ChannelArchiveState = {
 	channel_id: DSnowflake;
+	earliest_archive: DSnowflake;
 	latest_archive: DSnowflake;
+	backfill_done: boolean;
 }
 
 export interface Env {
@@ -66,4 +68,11 @@ export type DownloadMediaResult = {
 	used_backup: boolean;
 	response: Response;
 	response_backup?: Response;
+}
+
+export type RateLimitHeaders = {
+	limit: Number;
+	remaining: Number;
+	reset_after: Number;
+	reset_bucket: Number;
 }

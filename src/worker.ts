@@ -3,7 +3,7 @@ import { error, IRequest, json, Router } from 'itty-router';
 import DiscordApi from './DiscordApi';
 import {verifyKey} from 'discord-interactions';
 import { MessageBatch } from '@cloudflare/workers-types';
-import { parseChannels, sleep } from './helpers';
+import { getRateHeaders, parseChannels, sleep } from './helpers';
 import { DiscordLinkState } from './DiscordLinkState';
 import { ArchivedImage, ArchiveRequest, Env, StandardArgs } from './types';
 import { RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
@@ -120,64 +120,22 @@ export default {
 		discord = discord ? discord : new DiscordApi(env.DISCORD_TOKEN);
 		switch (event.cron) {
 			// todo backfill: effectively the opposite of this - running a cron, say every third minute, using `before` instead of `after` - but only if channel is marked for backfilling
-			 case "48 */2 * * *":
-			default:
+			case "48 */2 * * *":
 				// main cron for updating channels
+				console.log("running periodic archive cron");
 				for (const channel_id of parsed_channels) {
-					let channel_state = await archive_state.getArchiveState(channel_id);
-					console.log(channel_state);
-					if (!channel_state) {
-						// start with just the latest 100 IDs
-						channel_state = {
-							channel_id: channel_id,
-							latest_archive: "1",
-						};
-						let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id, null, null, null, 100)).json();
-						for (let message of messages) {
-							let archiveRequest: ArchiveRequest = {
-								channel_id: channel_id,
-								message: message
-							};
-							await env.DOWNLOAD_QUEUE.send(archiveRequest);
-							if (BigInt(channel_state.latest_archive) < BigInt(message.id)) {
-								channel_state.latest_archive = message.id;
-							}
-						}
-					}
-					else {
-						// go back messages
-						let shouldStop = false;
-						while (!shouldStop) {
-							let response = await (await discord.getMessages(channel_id, channel_state.latest_archive, null, null, 100));
-							let _rate_limit = Number(response.headers.get("X-RateLimit-Limit"));
-							let _rate_remaining = Number(response.headers.get("X-RateLimit-Remaining"));
-							let _rate_reset_after = Number(response.headers.get("X-RateLimit-Reset-After"));
-							let _rate_reset_bucket = Number(response.headers.get("X-RateLimit-Bucket")); // seems to be the same for querying channels in a guild
-							if (_rate_remaining < 2) {
-								// If Discord pushes us to waiting over 5 seconds for get messages, it's probably not a good idea to keep hitting it
-								if (_rate_reset_after > 5) {
-									shouldStop = true;
-								}
-								await sleep(_rate_reset_after * 1000);
-							}
-							let messages: RESTGetAPIChannelMessagesResult = await response.json();
-							if (messages.length == 0) {
-								shouldStop = true;
-							}
-							for (let message of messages) {
-								let archiveRequest: ArchiveRequest = {
-									channel_id: channel_id,
-									message: message
-								};
-								await env.DOWNLOAD_QUEUE.send(archiveRequest);
-								if (BigInt(channel_state.latest_archive) < BigInt(message.id)) {
-									channel_state.latest_archive = message.id;
-								}
-							}
-						}
-					}
-					await archive_state.setArchiveState(channel_state);
+					await archive_state.processCron(channel_id, discord, env);
 				}
+				return;
+			case "*/15 * * * *":
+				// backfill
+				console.log("running backfill cron");
+				for (const channel_id of parsed_channels) {
+					await archive_state.processCron(channel_id, discord, env);
+				}
+				return;
+			default:
+				console.log("cannot run unspecified cron");
 		 }
 	}
 };

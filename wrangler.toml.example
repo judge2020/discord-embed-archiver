@@ -6,33 +6,32 @@ compatibility_date = "2023-08-14"
 # Note: Use secrets to store sensitive data.
 # Docs: https://developers.cloudflare.com/workers/platform/environment-variables
 [vars]
-# "guildid": [channelid,channelid,threadid]
 ARCHIVE_CHANNELS = '["1111111111122222222", "3333333344444444444"]'
-DISCORD_CLIENT_ID=11113333344444444411122222
+DISCORD_CLIENT_ID= "1140704569194729592"
 DISCORD_CLIENT_PUB_KEY = "hjgk267iu54erjkhotr3i67yutroe"
 R2_BASE_URL = "https://pub-X.r2.dev"
 
 [triggers]
-crons = [ "48 */2 * * *" ]
+crons = [ "48 */2 * * *", "*/15 * * * *" ]
 
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
 # Docs: https://developers.cloudflare.com/workers/runtime-apis/kv
 [[kv_namespaces]]
 binding = "DiscordLinkStateKV"
-id = ""
-preview_id = ""
+id = "HERE"
+preview_id = "only_needed_for_dev"
 
 [[kv_namespaces]]
 binding = "DiscordArchiveStateKV"
-id = ""
-preview_id = ""
+id = "HERE"
+preview_id = "only_needed_for_dev"
 
 # Bind an R2 Bucket. Use R2 to store arbitrarily large blobs of data, such as files.
 # Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
 [[r2_buckets]]
-binding = "MY_BUCKET"
-bucket_name = "my-bucket"
-preview_name = "my-bucket-my-preview"
+binding = "DISCORD_IMAGE_BUCKET"
+bucket_name = "discord-image-bucket"
+preview_name = "discord-image-bucket-preview"
 
 # Bind a Queue producer. Use this binding to schedule an arbitrary task that may be processed later by a Queue consumer.
 # Docs: https://developers.cloudflare.com/queues/get-started

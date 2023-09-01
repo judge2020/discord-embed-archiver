@@ -11,6 +11,9 @@ export default class DiscordApi {
 	private api_base: string = "https://discord.com/api/v10";
 
 	constructor(token: string) {
+		if (token.length < 30) {
+			throw new Error("Discord token incorrect length");
+		}
 		this.default_headers = {
 			"authorization": "Bot " + token,
 			"content-type": "application/json",

@@ -1,6 +1,7 @@
 name = "discord-link-archiver"
 main = "src/worker.ts"
 compatibility_date = "2023-08-14"
+usage_model = "unbound"
 
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.

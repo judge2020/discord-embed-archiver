@@ -3,10 +3,10 @@ import { error, IRequest, json, Router } from 'itty-router';
 import DiscordApi from './DiscordApi';
 import {verifyKey} from 'discord-interactions';
 import { MessageBatch } from '@cloudflare/workers-types';
-import { getRateHeaders, parseChannels, sleep } from './helpers';
+import { getImageFromEmbed, parseChannels } from './helpers';
 import { DiscordLinkState } from './DiscordLinkState';
-import { ArchivedImage, ArchiveRequest, Env, StandardArgs } from './types';
-import { RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
+import { ArchiveRequest, Env, StandardArgs } from './types';
+import { RESTGetAPIChannelMessageResult, RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
 import { DiscordInteractHandler } from './DiscordInteractHandler';
 import { DiscordArchiveState } from './ChannelArchiveState';
 
@@ -54,9 +54,20 @@ router.post('/interactions', async (request: Request, env, discord, link_state) 
 	return await discordInteractHandler.handle((await request.json()));
 });
 
-router.get('/get/:message_id', async (request, env, discord, link_state) => {
+router.get('/metadata/:message_id', async (request, env, discord, link_state) => {
 	let message_id = request.params.message_id;
 	return {...{base_url: env.R2_BASE_URL}, ...(await link_state.getMessageMetadata(message_id))};
+});
+
+router.get('/embeds/:channel_id/:message_id', async (request, env, discord, link_state) => {
+	let channel_id = request.params.channel_id;
+	let message_id = request.params.message_id;
+	let message: RESTGetAPIChannelMessageResult = await (await discord.getMessage(channel_id, message_id)).json();
+	let embeds = [];
+	for (const embed of message.embeds) {
+		embeds.push(getImageFromEmbed(embed));
+	}
+	return embeds;
 });
 
 // todo: change this into a way to backfill

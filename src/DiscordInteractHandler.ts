@@ -119,19 +119,19 @@ export class DiscordInteractHandler {
 				fields: [
 					{
 						inline: true,
-						name: "Original URL_" + archive_metadata.images.indexOf(image).toString(),
+						name: "Original URL",
 						value: image.source_url,
 					},
 					{
 						inline: true,
-						name: "Archive URL_" + archive_metadata.images.indexOf(image).toString(),
+						name: "Archive URL",
 						value: `${this.env.R2_BASE_URL}/${image.image_key}`,
 					}
 				]
 			})
 		}
-
-		return successInteractResponse("", out_embeds);
+		let unixTimestamp = Math.floor(new Date(archive_metadata.timestamp).getTime() / 1000);
+		return successInteractResponse(`https://discord.com/channels/${json.guild_id}/${json.channel_id}/${message.id} archived <t:${unixTimestamp}:R>`, out_embeds);
 	}
 
 	private async handleArchiveNow(json: APIInteraction, message: APIMessage): Promise<APIInteractionResponse> {

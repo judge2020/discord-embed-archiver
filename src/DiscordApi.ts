@@ -61,4 +61,14 @@ export default class DiscordApi {
 			headers: this.default_headers,
 		})
 	}
+
+	async getMessage(channel_id: DSnowflake, message_id: DSnowflake): Promise<Response> {
+
+		let url = `${this.api_base}/channels/${channel_id}/messages/${message_id}`;
+
+		return fetch(url, {
+			method: "GET",
+			headers: this.default_headers,
+		})
+	}
 }

@@ -1,5 +1,5 @@
-import { ArchiveRequest, DownloadMediaResult, DSnowflake, EmbedArchiveRequest, RateLimitHeaders } from './types';
-import { APIEmbed, APIMessage } from 'discord-api-types/v10';
+import { DownloadMediaResult, DSnowflake, EmbedArchiveRequest, RateLimitHeaders } from './types';
+import { APIEmbed } from 'discord-api-types/v10';
 
 const twitter_hostnames = [
 	"twitter.com",

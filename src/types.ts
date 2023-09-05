@@ -16,6 +16,11 @@ export type ArchiveRequest = {
 	message: APIMessage;
 }
 
+export type ChannelListRequest = {
+	channel_id: DSnowflake;
+	backfill: boolean;
+}
+
 export type ArchivedImage = {
 	image_key: string;
 	source_url: string;
@@ -40,10 +45,14 @@ export type ChannelArchiveState = {
 export interface Env {
 	// SECRETS
 	DISCORD_TOKEN: string;
+
+	// VARS
 	ARCHIVE_CHANNELS: string;
 	DISCORD_CLIENT_ID: string;
 	DISCORD_CLIENT_PUB_KEY: string;
 	R2_BASE_URL: string;
+	USAGE_MODEL: string;
+
 	// Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
 	DiscordLinkStateKV: KVNamespace;
 	DiscordArchiveStateKV: KVNamespace;
@@ -58,7 +67,8 @@ export interface Env {
 	// MY_SERVICE: Fetcher;
 	//
 	// Example binding to a Queue. Learn more at https://developers.cloudflare.com/queues/javascript-apis/
-	DOWNLOAD_QUEUE: Queue<any>;
+	DOWNLOAD_QUEUE: Queue<ArchiveRequest>;
+	CHANNEL_QUEUE: Queue<ChannelListRequest>;
 }
 
 export type StandardArgs = [env: Env, discord: DiscordApi, link_state: DiscordLinkState];

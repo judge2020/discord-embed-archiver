@@ -2,13 +2,16 @@
 import { error, IRequest, json, Router } from 'itty-router';
 import DiscordApi from './DiscordApi';
 import {verifyKey} from 'discord-interactions';
-import { MessageBatch } from '@cloudflare/workers-types';
+import { Message, MessageBatch } from '@cloudflare/workers-types';
 import { getImageFromEmbed, parseChannels } from './helpers';
 import { DiscordLinkState } from './DiscordLinkState';
-import { ArchiveRequest, Env, StandardArgs } from './types';
+import { ArchiveRequest, ChannelListRequest, Env, StandardArgs } from './types';
 import { RESTGetAPIChannelMessageResult, RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
 import { DiscordInteractHandler } from './DiscordInteractHandler';
 import { DiscordArchiveState } from './ChannelArchiveState';
+
+const DISCORD_DOWNLOAD_QUEUE = 'discord-download-queue';
+const CHANNEL_LIST_QUEUE = 'channel-list-queue';
 
 const router = Router<IRequest, StandardArgs>();
 
@@ -104,25 +107,43 @@ export default {
 			.catch(error);
 	},
 
-	async queue(batch: MessageBatch<ArchiveRequest>, env: Env): Promise<void> {
+	async queue(batch: MessageBatch<ArchiveRequest | ChannelListRequest>, env: Env): Promise<void> {
+		discord = discord ? discord : new DiscordApi(env.DISCORD_TOKEN);
 		link_state = link_state ? link_state : new DiscordLinkState(env.DiscordLinkStateKV, env.DISCORD_IMAGE_BUCKET);
 
-		// it's important to await things here, since we can only have 6 simultaneous connections open to other CF services (R2 and KV)
-		for(const message of batch.messages) {
-			let request: ArchiveRequest = message.body;
-			console.log("Consuming " + request.message.id);
-			let already_archived = (await link_state.messageAlreadyArchived(request.message.id));
-			if (already_archived) {
-				console.log("Already archived", request.message.id);
-				continue;
-			} else {
-				await link_state.archiveMessage(request);
-				console.log('archived metadata for' + request.message.id);
-			}
-			// todo: download and put in r2 and/or durable objects
-			message.ack();
+		switch (batch.queue) {
+			case DISCORD_DOWNLOAD_QUEUE:
+				// it's important to await things here, since we can only have 6 simultaneous connections open to other CF services (R2 and KV)
+				for(const message: Message<ArchiveRequest> of batch.messages) {
+					let request: ArchiveRequest = message.body;
+					console.log("Consuming " + request.message.id);
+					let already_archived = (await link_state.messageAlreadyArchived(request.message.id));
+					if (already_archived) {
+						console.log("Already archived", request.message.id);
+						continue;
+					} else {
+						await link_state.archiveMessage(request);
+						console.log('archived metadata for' + request.message.id);
+					}
+					message.ack();
+				}
+				return;
+			case CHANNEL_LIST_QUEUE:
+				for (const message: Message<ChannelListRequest> of batch.messages) {
+					let request: ChannelListRequest = message.body;
+					try {
+						await archive_state.processCron(request.channel_id, discord, env, request.backfill);
+					}
+					catch (e) {
+						console.log(`Failed to archive channel ${request.channel_id} with error ${e.toString()} | backfill: ${request.backfill}`, e.stack)
+					}
+				}
+				return;
+			default:
+				console.log("Batch request did not match any known queue");
+				return;
 		}
-		return;
+
 	},
 
 	async scheduled(event, env: Env, ctx) {
@@ -135,24 +156,20 @@ export default {
 				// main cron for updating channels
 				console.log("running periodic archive cron");
 				for (const channel_id of parsed_channels) {
-					try {
-						await archive_state.processCron(channel_id, discord, env);
-					}
-					catch (e) {
-						console.log(`Failed to archive channel ${channel_id} with error ${e.toString()}`, e.stack)
-					}
+					await env.CHANNEL_QUEUE.send({
+						channel_id: channel_id,
+						backfill: false,
+					})
 				}
 				return;
 			case "*/15 * * * *":
 				// backfill
 				console.log("running backfill cron");
 				for (const channel_id of parsed_channels) {
-					try {
-						await archive_state.processCron(channel_id, discord, env, true);
-					}
-					catch (e) {
-						console.log(`Failed to archive channel ${channel_id} with error ${e.toString()}`, e.stack)
-					}
+					await env.CHANNEL_QUEUE.send({
+						channel_id: channel_id,
+						backfill: true,
+					})
 				}
 				return;
 			default:

@@ -20,7 +20,7 @@ export class DiscordArchiveState {
 	}
 
 	async getArchiveState(channel_id: DSnowflake): Promise<ChannelArchiveState | null> {
-		let response = (await this.DiscordArchiveStateKV.get(channel_id.toString()));
+		let response = (await this.DiscordArchiveStateKV.get(channel_id));
 		if (response !== null) {
 			return JSON.parse(response);
 		}
@@ -33,21 +33,22 @@ export class DiscordArchiveState {
 			return;
 		}
 
-		// leaving enough room for many subrequests (1000 total limit between discord, r2, kv, etc)
-
-		let max_channel_requests = 100;
+		// In bundled mode, only 50 subrequests are allowed
+		// In unbound mode, 1000 are allowed
+		// Sending to queue is a subrequest, and so is KV get/put requests
+		let discord_limit = env.USAGE_MODEL == 'unbound' ? 100 : 40;
+		let max_channel_requests = env.USAGE_MODEL == 'unbound' ? 8 : 1;
 		let current_requests = 0;
 
 		console.log(channel_state);
 		if (!channel_state) {
-			// start with just the latest 100 IDs
 			channel_state = {
 				channel_id: channel_id,
 				earliest_archive: DEFAULT_EARLIEST,
 				latest_archive: DEFAULT_LATEST,
 				backfill_done: false,
 			};
-			let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id, null, null, null, 100)).json();
+			let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id, null, null, null, discord_limit)).json();
 			if (!(Symbol.iterator in Object(messages))) {
 				throw new Error("Error from discord:" + JSON.stringify(messages));
 			}
@@ -68,12 +69,8 @@ export class DiscordArchiveState {
 		else {
 			// iterate messages
 			let shouldStop = false;
-			while (!shouldStop) {
-
+			while (current_requests < max_channel_requests && !shouldStop) {
 				current_requests += 1;
-				if (current_requests >= max_channel_requests) {
-					shouldStop = true;
-				}
 
 				let response;
 				response = backfill ?

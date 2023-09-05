@@ -8,6 +8,7 @@ Desired functionality:
 - [X] Image archive retrieval: Take a message ID and tie it back to (a number of) archived embed images (This will likely be achieved by integrating DiscordApi Interactions where a message button opens the archived image URL in-browser)
 - [X] Cron: every 2 hours, go through the channels configured and archive all recent embeds
 - [X] Backfill: A way to trigger backfilling an entire channel using a slow queue (to avoid rate limits)
+- [ ] Addressing issues of scale
 - [ ] Code cleanup and organization
 
 Possibly:
@@ -44,8 +45,8 @@ client.run("BOT_TOKEN_HERE")
 4. Create KV stores:
 
 ```
-npm exec wrangler kv:namespace create DiscordLinkStateKV
-npm exec wrangler kv:namespace create DiscordArchiveStateKV
+npx wrangler kv:namespace create DiscordLinkStateKV
+npx wrangler kv:namespace create DiscordArchiveStateKV
 ```
 
 Fill in the IDs it returns in wrangler.toml for the two KV namespaces
@@ -54,30 +55,33 @@ Fill in the IDs it returns in wrangler.toml for the two KV namespaces
 5. Create discord token secret:
 
 ```
-npm exec wrangler secret put DISCORD_TOKEN
+npx wrangler secret put DISCORD_TOKEN
 ```
 
 5. Create the main R2 bucket of interest:
 
 ```
-npm exec wrangler r2 bucket create discord-image-bucket
+npx wrangler r2 bucket create discord-image-bucket
 ```
 
 (if you choose a different name, change it in wrangler.toml)
 
 Then head to [the Bucket's settings page](https://dash.cloudflare.com/?to=/:account/r2/default/buckets/discord-image-bucket), enable "R2.dev subdomain", and copy the Public bucket URL into the R2_BASE_URL variable in `wrangler.toml`.
 
-6. Create the queue object:
+Note: if you'd like, you can set up a custom domain. You will need to at scale if you begin to experience the r2.dev rate limits or if you'd like to have images cached instead of counting as a Class A operation.
+
+6. Create the queues:
 
 ```
-npm exec wrangler queues create discord-download-queue
+npx wrangler queues create discord-download-queue
+npx wrangler queues create channel-list-queue
 ```
 
 7. fill out the remaining [vars] in wrangler.toml
 
-Note: "thread IDs" are valid channel IDs.
+Note: thread IDs are valid channel IDs.
 
-8. `npm exec wrangler deploy`
-8. Take the output worker URL, "https://discord-link-archiver.*.workers.dev/", and put it into the Discord Developer portal as an interactions endpoint the interaction endpoint at /interactions.
+8. `npx wrangler deploy`
+8. Take the output worker URL, "https:\/\/discord-link-archiver.*.workers.dev/", and put it into the Discord Developer portal as an interactions endpoint the interaction endpoint at /interactions.
 9. visit your worker at the path /setup-globals to set up global app commands
 9. visit your worker at the path /invite to invite it to your Discord server

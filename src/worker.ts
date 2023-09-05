@@ -13,7 +13,7 @@ import { DiscordArchiveState } from './ChannelArchiveState';
 const DISCORD_DOWNLOAD_QUEUE = 'discord-download-queue';
 const DISCORD_DOWNLOAD_QUEUE_ALT = 'discord-download-queue-production';
 const CHANNEL_LIST_QUEUE = 'channel-list-queue';
-const CHANNEL_LIST_QUEUE_ALT = 'channel-list-queue';
+const CHANNEL_LIST_QUEUE_ALT = 'channel-list-queue-production';
 
 const router = Router<IRequest, StandardArgs>();
 

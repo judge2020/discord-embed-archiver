@@ -100,7 +100,7 @@ export class DiscordInteractHandler {
 
 	private async handleRetrieve(json: APIInteraction, message: APIMessage): Promise<APIInteractionResponse> {
 		let archive_metadata = await this.discordLinkState.getMessageMetadata(message.id);
-		if (archive_metadata == null) {
+		if (archive_metadata == null || archive_metadata.images.length == 0) {
 			let content = "❌ Unable to retrieve archive for this message. Likely Reason: ";
 			if (message.embeds.length == 0) {
 				content += "No embeds on message. Attachments and non-embedded links are not archived.";
@@ -108,8 +108,11 @@ export class DiscordInteractHandler {
 			else if (!this.parsedChannels.includes(json.channel_id!)) {
 				content += "Message is not in an approved archiving channel or thread";
 			}
+			else if (archive_metadata?.images.length == 0) {
+				content += "Archiving failed for some reason.";
+			}
 			else {
-				content += "Has not been archived yet.";
+				content += `Has not been archived yet. \nIf this message has been edited, use the '${MESSAGE_COMMAND_ARCHIVE_NOW}' action.`;
 			}
 			return errorInteractResponse(content);
 		}

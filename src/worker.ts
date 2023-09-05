@@ -43,6 +43,10 @@ router.post('/interactions', async (request: Request, env, discord, link_state) 
 	let signature = request.headers.get('x-signature-ed25519');
 	let timestamp = request.headers.get('x-signature-timestamp');
 
+	if (!signature || !timestamp || request.method != 'POST') {
+		return new Response("", {status: 400})
+	}
+
 	let isValidRequest = verifyKey(
 		await request.clone().arrayBuffer(),
 		signature,

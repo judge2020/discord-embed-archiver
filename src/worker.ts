@@ -11,7 +11,9 @@ import { DiscordInteractHandler } from './DiscordInteractHandler';
 import { DiscordArchiveState } from './ChannelArchiveState';
 
 const DISCORD_DOWNLOAD_QUEUE = 'discord-download-queue';
+const DISCORD_DOWNLOAD_QUEUE_ALT = 'discord-download-queue-production';
 const CHANNEL_LIST_QUEUE = 'channel-list-queue';
+const CHANNEL_LIST_QUEUE_ALT = 'channel-list-queue';
 
 const router = Router<IRequest, StandardArgs>();
 
@@ -112,7 +114,7 @@ export default {
 		link_state = link_state ? link_state : new DiscordLinkState(env.DiscordLinkStateKV, env.DISCORD_IMAGE_BUCKET);
 
 		switch (batch.queue) {
-			case DISCORD_DOWNLOAD_QUEUE:
+			case DISCORD_DOWNLOAD_QUEUE || DISCORD_DOWNLOAD_QUEUE_ALT:
 				// it's important to await things here, since we can only have 6 simultaneous connections open to other CF services (R2 and KV)
 				for(const message: Message<ArchiveRequest> of batch.messages) {
 					let request: ArchiveRequest = message.body;
@@ -128,7 +130,7 @@ export default {
 					message.ack();
 				}
 				return;
-			case CHANNEL_LIST_QUEUE:
+			case CHANNEL_LIST_QUEUE || CHANNEL_LIST_QUEUE_ALT:
 				for (const message: Message<ChannelListRequest> of batch.messages) {
 					let request: ChannelListRequest = message.body;
 					try {

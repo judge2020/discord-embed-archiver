@@ -79,23 +79,6 @@ router.get('/embeds/:channel_id/:message_id', async (request, env, discord, link
 	return embeds;
 });
 
-// todo: change this into a way to backfill
-// likely using kv or DO to track ?before message ID
-router.get('/run', async (request, env, discord) => {
-	let parsed_channels = parseChannels(env.ARCHIVE_CHANNELS);
-	let channel_id = parsed_channels[0];
-	let messages: RESTGetAPIChannelMessagesResult = await (await discord.getMessages(channel_id)).json();
-
-	messages.forEach((message) => {
-		let archiveRequest: ArchiveRequest = {
-			channel_id: channel_id,
-			message: message
-		};
-		env.DOWNLOAD_QUEUE.send(archiveRequest);
-	});
-	return "Done";
-});
-
 
 let discord: DiscordApi;
 let link_state: DiscordLinkState;
@@ -116,6 +99,7 @@ export default {
 	async queue(batch: MessageBatch<ArchiveRequest | ChannelListRequest>, env: Env): Promise<void> {
 		discord = discord ? discord : new DiscordApi(env.DISCORD_TOKEN);
 		link_state = link_state ? link_state : new DiscordLinkState(env.DiscordLinkStateKV, env.DISCORD_IMAGE_BUCKET);
+		archive_state = archive_state ? archive_state : new DiscordArchiveState(env.DiscordArchiveStateKV);
 
 		switch (batch.queue) {
 			case DISCORD_DOWNLOAD_QUEUE || DISCORD_DOWNLOAD_QUEUE_ALT:
@@ -157,7 +141,6 @@ export default {
 		archive_state = archive_state ? archive_state : new DiscordArchiveState(env.DiscordArchiveStateKV);
 		discord = discord ? discord : new DiscordApi(env.DISCORD_TOKEN);
 		switch (event.cron) {
-			// todo backfill: effectively the opposite of this - running a cron, say every third minute, using `before` instead of `after` - but only if channel is marked for backfilling
 			case "48 */2 * * *":
 				// main cron for updating channels
 				console.log("running periodic archive cron");

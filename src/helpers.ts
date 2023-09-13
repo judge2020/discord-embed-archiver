@@ -1,5 +1,5 @@
 import { DownloadMediaResult, DSnowflake, EmbedArchiveRequest, RateLimitHeaders } from './types';
-import { APIEmbed } from 'discord-api-types/v10';
+import { APIEmbed, Snowflake } from 'discord-api-types/v10';
 
 const twitter_hostnames = [
 	"twitter.com",
@@ -103,4 +103,19 @@ export function getRateHeaders(headers: Headers): RateLimitHeaders {
 		reset_after: Number(headers.get("X-RateLimit-Limit")),
 		reset_bucket: Number(headers.get("X-RateLimit-Limit")), // seems to be the same for querying channels in a guild
 	}
+}
+
+export function getMessageLink(guild_id: Snowflake, channel_id: Snowflake, message_id: Snowflake) {
+	return `https://discord.com/channels/${guild_id}/${channel_id}/${message_id}`;
+}
+
+export function getUnixTimestampFromIsoString(iso_string: string) {
+	return Math.floor(new Date(iso_string).getTime() / 1000);
+}
+
+export function getDiscordRelativeTimeEmbed(unix_timestamp: string|number) {
+	if (Number.isNaN(Number(unix_timestamp))) {
+		unix_timestamp = getUnixTimestampFromIsoString(unix_timestamp.toString());
+	}
+	return `<t:${unix_timestamp}:R>`;
 }

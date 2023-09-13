@@ -2,15 +2,17 @@ import DiscordApi from './DiscordApi';
 import { DiscordLinkState } from './DiscordLinkState';
 import {
 	APIEmbed,
-	APIEmbedField,
 	APIInteraction,
 	APIInteractionResponse, APIMessage,
 	ApplicationCommandType,
 	InteractionResponseType,
 	InteractionType
 } from 'discord-api-types/v10';
-import { ArchivedImage, ArchiveRequest, DSnowflake, Env } from './types';
-import { extractArchiveRequestFromMessage, parseChannels } from './helpers';
+import { ArchiveRequest, DSnowflake, Env } from './types';
+import {
+	getDiscordRelativeTimeEmbed,
+	getMessageLink, parseChannels
+} from './helpers';
 
 const MESSAGE_COMMAND_RETRIEVE = 'Retrieve Archive';
 const MESSAGE_COMMAND_ARCHIVE_NOW = 'Archive Now';
@@ -133,8 +135,8 @@ export class DiscordInteractHandler {
 				]
 			})
 		}
-		let unixTimestamp = Math.floor(new Date(archive_metadata.timestamp).getTime() / 1000);
-		return successInteractResponse(`https://discord.com/channels/${json.guild_id}/${json.channel_id}/${message.id} archived <t:${unixTimestamp}:R>`, out_embeds);
+
+		return successInteractResponse(`${getMessageLink(json.guild_id!, json.channel_id!, message.id)} archived ${getDiscordRelativeTimeEmbed(archive_metadata.timestamp)}`, out_embeds);
 	}
 
 	private async handleArchiveNow(json: APIInteraction, message: APIMessage): Promise<APIInteractionResponse> {
@@ -143,7 +145,7 @@ export class DiscordInteractHandler {
 		}
 
 		if ((await this.discordLinkState.messageAlreadyArchived(message.id))) {
-			return errorInteractResponse('❌ Already archived');
+			return errorInteractResponse(`❌ ${getMessageLink(json.guild_id!, json.channel_id!, message.id)} Already archived`);
 		}
 
 		let archiveRequest: ArchiveRequest = {
@@ -151,7 +153,7 @@ export class DiscordInteractHandler {
 			message: message,
 		};
 		if (!archiveRequest) {
-			return errorInteractResponse('❌ No embeds on message. Attachments and non-embedded links are not archived.');
+			return errorInteractResponse(`❌ No embeds on message ${getMessageLink(json.guild_id!, json.channel_id!, message.id)}. Attachments and non-embedded links are not archived.`);
 		}
 
 		let archived = await this.discordLinkState.archiveMessage(archiveRequest);
@@ -172,7 +174,7 @@ export class DiscordInteractHandler {
 				]
 			});
 		}
-		return successInteractResponse("✅ Successfully archived", out__embeds);
+		return successInteractResponse(`✅ Successfully archived ${getMessageLink(json.guild_id!, json.channel_id!, message.id)}`, out__embeds);
 	}
 
 	async setupGlobals(client_id: DSnowflake) {

@@ -8,7 +8,7 @@ import {
 	InteractionResponseType,
 	InteractionType
 } from 'discord-api-types/v10';
-import { ArchiveRequest, DSnowflake, Env } from './types';
+import { ArchiveRequest, DSnowflake, Env, ErrorMessage } from './types';
 import {
 	getDiscordRelativeTimeEmbed,
 	getMessageLink, parseChannels
@@ -103,12 +103,17 @@ export class DiscordInteractHandler {
 	private async handleRetrieve(json: APIInteraction, message: APIMessage): Promise<APIInteractionResponse> {
 		let archive_metadata = await this.discordLinkState.getMessageMetadata(message.id);
 		if (archive_metadata == null || archive_metadata.images.length == 0) {
-			let content = "❌ Unable to retrieve archive for this message. Likely Reason: ";
+			let content = `❌ Unable to retrieve archive for ${getMessageLink(json.guild_id!, json.channel_id!, message.id)}. Likely Reason: `;
 			if (message.embeds.length == 0) {
 				content += "No embeds on message. Attachments and non-embedded links are not archived.";
 			}
 			else if (!this.parsedChannels.includes(json.channel_id!)) {
 				content += "Message is not in an approved archiving channel or thread";
+			}
+			else if(archive_metadata?.errors?.length > 0) {
+				for (let error_message of archive_metadata?.errors) {
+					content += `\n${error_message.message} (${error_message.extra})`
+				}
 			}
 			else if (archive_metadata?.images.length == 0) {
 				content += "Archiving failed for some reason.";

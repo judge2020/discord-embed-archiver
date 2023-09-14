@@ -1,5 +1,5 @@
 import { KVNamespace, R2Bucket } from '@cloudflare/workers-types';
-import { ArchivedImage, ArchiveRequest, DSnowflake, MessageMetadataRequest } from './types';
+import { ArchivedImage, ArchiveRequest, DSnowflake, ErrorMessage, MessageMetadataRequest } from './types';
 import { downloadMedia, getFreshUrlForBucket, getImageFromEmbed, messageJsonKey } from './helpers';
 import { APIEmbed, APIMessage } from 'discord-api-types/v10';
 
@@ -31,6 +31,7 @@ export class DiscordLinkState {
 
 	async archiveMessage(request: ArchiveRequest): Promise<MessageMetadataRequest> {
 		let images: ArchivedImage[] = [];
+		let errors: ErrorMessage[] = [];
 
 		for (const embed of request.message.embeds) {
 			let extracted_embed = getImageFromEmbed(embed);
@@ -41,7 +42,10 @@ export class DiscordLinkState {
 			let downloaded_media = await downloadMedia(extracted_embed.url, extracted_embed.proxy_url);
 			if (!downloaded_media.success) {
 				console.log('Download media did not succeed for message' + request.message.id);
-				// todo use the kv metadata to track num tries, and stop after x retries
+				errors.push({
+					message: `failed media download: ${downloaded_media.response.statusText} | ${downloaded_media.response_backup?.statusText}`,
+					extra: (await downloaded_media.response.text()) + ' | ' + (downloaded_media.response_backup ? await downloaded_media.response_backup.text() : '')
+				})
 				continue;
 			}
 
@@ -65,6 +69,7 @@ export class DiscordLinkState {
 
 		let returned_metadata = {
 			images: images,
+			errors : errors.length > 0 ? errors : null,
 			timestamp: new Date().toISOString(),
 			archive_request: request
 		};

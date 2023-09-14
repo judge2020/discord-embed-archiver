@@ -29,8 +29,14 @@ export type ArchivedImage = {
 	contentLength?: string;
 };
 
+export type ErrorMessage = {
+	message: string;
+	extra: string | null;
+}
+
 export type MessageMetadataRequest = {
 	images: ArchivedImage[];
+	errors: ErrorMessage[] | null;
 	timestamp: string;
 	archive_request: ArchiveRequest;
 }

@@ -99,9 +99,9 @@ export function sleep(milliseconds) {
 export function getRateHeaders(headers: Headers): RateLimitHeaders {
 	return {
 		limit: Number(headers.get("X-RateLimit-Limit")),
-		remaining: Number(headers.get("X-RateLimit-Limit")),
-		reset_after: Number(headers.get("X-RateLimit-Limit")),
-		reset_bucket: Number(headers.get("X-RateLimit-Limit")), // seems to be the same for querying channels in a guild
+		remaining: Number(headers.get("X-RateLimit-Remaining")),
+		reset_after: Number(headers.get("X-RateLimit-Reset-After")),
+		reset_bucket: Number(headers.get("X-RateLimit-Bucket")), // seems to be the same for querying channels in a guild
 	}
 }
 

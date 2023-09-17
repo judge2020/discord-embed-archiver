@@ -25,7 +25,7 @@ const router = Router<IRequest, StandardArgs>();
 
 router.get('/', (request: IRequest, env: Env) => {
 	return new Response("Discord Embed Archiver\n" +
-		"Currently invite-only. To self-host on Cloudflare Workers: https://github.com/judge2020/discord-link-archiver");
+		"Currently invite-only. To self-host on Cloudflare Workers: https://github.com/judge2020/discord-embed-archiver");
 });
 
 router.get('/invite', (request: IRequest, env: Env) => {

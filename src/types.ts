@@ -78,7 +78,7 @@ export interface Env {
 	CHANNEL_QUEUE: Queue<ChannelListRequest>;
 }
 
-export type StandardArgs = [env: Env, discord: DiscordApi, link_state: DiscordLinkState];
+export type StandardArgs = [env: Env];
 
 export type DownloadMediaResult = {
 	success: boolean;

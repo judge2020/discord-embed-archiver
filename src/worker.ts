@@ -23,12 +23,12 @@ let archive_state: DiscordArchiveState;
 
 const router = Router<IRequest, StandardArgs>();
 
-router.get('/', (request, env, discord) => {
+router.get('/', (request: IRequest, env: Env) => {
 	return new Response("Discord Embed Archiver\n" +
 		"Currently invite-only. To self-host on Cloudflare Workers: https://github.com/judge2020/discord-link-archiver");
 });
 
-router.get('/invite', (request, env) => {
+router.get('/invite', (request: IRequest, env: Env) => {
 	return new Response('', {
 		status: 302,
 		headers: {
@@ -38,16 +38,17 @@ router.get('/invite', (request, env) => {
 });
 
 
-router.get('/setup-globals/:secret', async (request, env, discord, link_state) => {
+router.get('/setup-globals/:secret', async (request: IRequest, env: Env) => {
 	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
 		return new Response("", {status: 401});
 	}
+	link_state = link_state ? link_state : new DiscordLinkState(env.DiscordLinkStateKV, env.DISCORD_IMAGE_BUCKET);
 	discordInteractHandler = discordInteractHandler ? discordInteractHandler : new DiscordInteractHandler(env, discord, link_state);
 	await discordInteractHandler.setupGlobals(env.DISCORD_CLIENT_ID);
 	return 'Good';
 })
 
-router.post('/interactions', async (request: Request, env, discord, link_state) => {
+router.post('/interactions', async (request: IRequest, env: Env) => {
 	let signature = request.headers.get('x-signature-ed25519');
 	let timestamp = request.headers.get('x-signature-timestamp');
 
@@ -66,25 +67,28 @@ router.post('/interactions', async (request: Request, env, discord, link_state) 
 		return new Response('Bad request signature', {status: 401})
 	}
 
+	link_state = link_state ? link_state : new DiscordLinkState(env.DiscordLinkStateKV, env.DISCORD_IMAGE_BUCKET);
 	discordInteractHandler = discordInteractHandler ? discordInteractHandler : new DiscordInteractHandler(env, discord, link_state);
 
 	return await discordInteractHandler.handle((await request.json()));
 });
 
-router.get('/metadata/:secret/:message_id', async (request, env, discord, link_state) => {
+router.get('/metadata/:secret/:message_id', async (request: IRequest, env: Env) => {
 	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
 		return new Response("", {status: 401});
 	}
 	let message_id = request.params.message_id;
+	link_state = link_state ? link_state : new DiscordLinkState(env.DiscordLinkStateKV, env.DISCORD_IMAGE_BUCKET);
 	return {...{base_url: env.R2_BASE_URL}, ...(await link_state.getMessageMetadata(message_id))};
 });
 
-router.get('/embeds/:secret/:channel_id/:message_id', async (request, env, discord, link_state) => {
+router.get('/embeds/:secret/:channel_id/:message_id', async (request, env) => {
 	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
 		return new Response("", {status: 401});
 	}
 	let channel_id = request.params.channel_id;
 	let message_id = request.params.message_id;
+	discord = discord ? discord : new DiscordApi(env.DISCORD_TOKEN);
 	let message: RESTGetAPIChannelMessageResult = await (await discord.getMessage(channel_id, message_id)).json();
 	let embeds = [];
 	for (const embed of message.embeds) {
@@ -93,11 +97,10 @@ router.get('/embeds/:secret/:channel_id/:message_id', async (request, env, disco
 	return embeds;
 });
 
-router.get('/backfill/:secret/:channel_id', async (request, env, discord, link_state, archive_state) => {
+router.get('/backfill/:secret/:channel_id', async (request, env, discord) => {
 	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
 		return new Response("", {status: 401});
 	}
-	archive_state = archive_state ? archive_state : new DiscordArchiveState(env.DiscordArchiveStateKV);
 	await env.CHANNEL_QUEUE.send({
 		channel_id: request.params.channel_id,
 		backfill: true,

@@ -1,7 +1,7 @@
 import { KVNamespace, R2Bucket } from '@cloudflare/workers-types';
 import { ArchivedImage, ArchiveRequest, DSnowflake, ErrorMessage, MessageMetadataRequest } from './types';
 import { downloadMedia, getFreshUrlForBucket, getImageFromEmbed, messageJsonKey } from './helpers';
-import { APIEmbed, APIMessage } from 'discord-api-types/v10';
+import { APIEmbed, APIMessage, Snowflake } from 'discord-api-types/v10';
 
 export class DiscordLinkState {
 
@@ -17,8 +17,8 @@ export class DiscordLinkState {
 		return (await this.DiscordLinkStateKV.get(messageJsonKey(message_id))) !== null;
 	}
 
-	async setMessageMetadata(messageMetadataRequest: MessageMetadataRequest) {
-		return this.DiscordLinkStateKV.put(messageJsonKey(messageMetadataRequest.archive_request.message.id), JSON.stringify(messageMetadataRequest));
+	async setMessageMetadata(messageMetadataRequest: MessageMetadataRequest, message_id: Snowflake) {
+		return this.DiscordLinkStateKV.put(messageJsonKey(message_id), JSON.stringify(messageMetadataRequest));
 	}
 
 	async getMessageMetadata(message_id: DSnowflake): Promise<MessageMetadataRequest | null> {
@@ -48,7 +48,6 @@ export class DiscordLinkState {
 				})
 				continue;
 			}
-
 			let bucketUrl = getFreshUrlForBucket(request.channel_id, request.message.id);
 
 			await this.DISCORD_IMAGE_BUCKET.put(bucketUrl, (await downloaded_media.response.arrayBuffer()), {
@@ -74,8 +73,7 @@ export class DiscordLinkState {
 			original_embeds: request.message.embeds,
 		};
 
-		await this.setMessageMetadata(returned_metadata);
-
+		await this.setMessageMetadata(returned_metadata, request.message.id);
 		return returned_metadata;
 	}
 }

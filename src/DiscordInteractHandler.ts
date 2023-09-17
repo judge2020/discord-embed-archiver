@@ -162,6 +162,7 @@ export class DiscordInteractHandler {
 		}
 
 		let archived = await this.discordLinkState.archiveMessage(archiveRequest);
+
 		let out__embeds: APIEmbed[] = [];
 		for (let image of archived.images) {
 			out__embeds.push({

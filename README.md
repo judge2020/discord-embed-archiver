@@ -1,6 +1,8 @@
-# DiscordApi Link Archiver
+# Discord Embed Archiver
 
-A Cloudflare Workers project to continuously archive images in specific DiscordApi channels
+A Cloudflare Workers project to continuously archive images in specific Discord channels.
+
+The public version of this bot is currently invite-only.
 
 Desired functionality:
 

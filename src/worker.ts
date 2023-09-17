@@ -18,7 +18,8 @@ const CHANNEL_LIST_QUEUE_ALT = 'channel-list-queue-production';
 const router = Router<IRequest, StandardArgs>();
 
 router.get('/', (request, env, discord) => {
-	return new Response('Root page2');
+	return new Response("Discord Embed Archiver\n" +
+		"Currently invite-only. To self-host on Cloudflare Workers: https://github.com/judge2020/discord-link-archiver");
 });
 
 router.get('/invite', (request, env) => {

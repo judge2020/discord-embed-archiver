@@ -38,7 +38,7 @@ queue = "discord-download-queue"
 # decrease max_batch_size to 10 for bundled usage model
 [[queues.consumers]]
 queue = "discord-download-queue"
-max_batch_size = 100
+max_batch_size = 60
 max_batch_timeout = 10
 max_retries = 0
 

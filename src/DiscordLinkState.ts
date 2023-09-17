@@ -67,11 +67,11 @@ export class DiscordLinkState {
 			});
 		}
 
-		let returned_metadata = {
+		let returned_metadata: MessageMetadataRequest = {
 			images: images,
 			errors : errors.length > 0 ? errors : null,
 			timestamp: new Date().toISOString(),
-			archive_request: request
+			original_embeds: request.message.embeds,
 		};
 
 		await this.setMessageMetadata(returned_metadata);

@@ -2,6 +2,7 @@ import { KVNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
 import DiscordApi from './DiscordApi';
 import { DiscordLinkState } from './DiscordLinkState';
 import { APIMessage } from 'discord-api-types/v10';
+import { APIEmbed } from 'discord-api-types/payloads/v10/channel';
 
 export type DSnowflake = string;
 
@@ -38,7 +39,7 @@ export type MessageMetadataRequest = {
 	images: ArchivedImage[];
 	errors: ErrorMessage[] | null;
 	timestamp: string;
-	archive_request: ArchiveRequest;
+	original_embeds: APIEmbed[] | null;
 }
 
 export type ChannelArchiveState = {

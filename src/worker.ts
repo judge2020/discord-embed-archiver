@@ -3,7 +3,7 @@ import { error, IRequest, json, Router } from 'itty-router';
 import DiscordApi from './DiscordApi';
 import {verifyKey} from 'discord-interactions';
 import { Message, MessageBatch } from '@cloudflare/workers-types';
-import { getImageFromEmbed, parseChannels } from './helpers';
+import { getImageFromEmbed, parseChannels, sleep } from './helpers';
 import { DiscordLinkState } from './DiscordLinkState';
 import { ArchiveRequest, ChannelListRequest, Env, StandardArgs } from './types';
 import { RESTGetAPIChannelMessageResult, RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
@@ -135,7 +135,9 @@ export default {
 						continue;
 					} else {
 						await link_state.archiveMessage(request);
-						console.log('archived metadata for' + request.message.id);
+						console.log('archived metadata', request.message.id);
+						// sleep between 50-79 milliseconds to ease hitting the image host(s)
+						await sleep(50 + (Math.floor(30 * Math.random())))
 					}
 					message.ack();
 				}

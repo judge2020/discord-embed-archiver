@@ -15,6 +15,12 @@ const DISCORD_DOWNLOAD_QUEUE_ALT = 'discord-download-queue-production';
 const CHANNEL_LIST_QUEUE = 'channel-list-queue';
 const CHANNEL_LIST_QUEUE_ALT = 'channel-list-queue-production';
 
+
+let discordInteractHandler: DiscordInteractHandler;
+let discord: DiscordApi;
+let link_state: DiscordLinkState;
+let archive_state: DiscordArchiveState;
+
 const router = Router<IRequest, StandardArgs>();
 
 router.get('/', (request, env, discord) => {
@@ -31,10 +37,11 @@ router.get('/invite', (request, env) => {
 	});
 });
 
-let discordInteractHandler: DiscordInteractHandler;
 
-
-router.get('/setup-globals', async (request, env, discord, link_state) => {
+router.get('/setup-globals/:secret', async (request, env, discord, link_state) => {
+	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
+		return new Response("", {status: 401});
+	}
 	discordInteractHandler = discordInteractHandler ? discordInteractHandler : new DiscordInteractHandler(env, discord, link_state);
 	await discordInteractHandler.setupGlobals(env.DISCORD_CLIENT_ID);
 	return 'Good';
@@ -64,12 +71,18 @@ router.post('/interactions', async (request: Request, env, discord, link_state) 
 	return await discordInteractHandler.handle((await request.json()));
 });
 
-router.get('/metadata/:message_id', async (request, env, discord, link_state) => {
+router.get('/metadata/:secret/:message_id', async (request, env, discord, link_state) => {
+	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
+		return new Response("", {status: 401});
+	}
 	let message_id = request.params.message_id;
 	return {...{base_url: env.R2_BASE_URL}, ...(await link_state.getMessageMetadata(message_id))};
 });
 
-router.get('/embeds/:channel_id/:message_id', async (request, env, discord, link_state) => {
+router.get('/embeds/:secret/:channel_id/:message_id', async (request, env, discord, link_state) => {
+	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
+		return new Response("", {status: 401});
+	}
 	let channel_id = request.params.channel_id;
 	let message_id = request.params.message_id;
 	let message: RESTGetAPIChannelMessageResult = await (await discord.getMessage(channel_id, message_id)).json();
@@ -80,10 +93,17 @@ router.get('/embeds/:channel_id/:message_id', async (request, env, discord, link
 	return embeds;
 });
 
+router.get('/backfill/:secret/:channel_id', async (request, env, discord, link_state, archive_state) => {
+	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
+		return new Response("", {status: 401});
+	}
+	archive_state = archive_state ? archive_state : new DiscordArchiveState(env.DiscordArchiveStateKV);
+	await env.CHANNEL_QUEUE.send({
+		channel_id: request.params.channel_id,
+		backfill: true,
+	})
+})
 
-let discord: DiscordApi;
-let link_state: DiscordLinkState;
-let archive_state: DiscordArchiveState;
 
 // noinspection JSUnusedGlobalSymbols
 export default {
@@ -103,7 +123,8 @@ export default {
 		archive_state = archive_state ? archive_state : new DiscordArchiveState(env.DiscordArchiveStateKV);
 
 		switch (batch.queue) {
-			case DISCORD_DOWNLOAD_QUEUE || DISCORD_DOWNLOAD_QUEUE_ALT:
+			case DISCORD_DOWNLOAD_QUEUE_ALT:
+			case DISCORD_DOWNLOAD_QUEUE:
 				// it's important to await things here, since we can only have 6 simultaneous connections open to other CF services (R2 and KV)
 				for(const message: Message<ArchiveRequest> of batch.messages) {
 					let request: ArchiveRequest = message.body;
@@ -119,7 +140,8 @@ export default {
 					message.ack();
 				}
 				return;
-			case CHANNEL_LIST_QUEUE || CHANNEL_LIST_QUEUE_ALT:
+			case CHANNEL_LIST_QUEUE_ALT:
+			case CHANNEL_LIST_QUEUE:
 				for (const message: Message<ChannelListRequest> of batch.messages) {
 					let request: ChannelListRequest = message.body;
 					try {

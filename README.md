@@ -84,6 +84,6 @@ npx wrangler queues create channel-list-queue
 Note: thread IDs are valid channel IDs.
 
 8. `npx wrangler deploy`
-8. Take the output worker URL, "https:\/\/discord-link-archiver.*.workers.dev/", and put it into the Discord Developer portal as an interactions endpoint the interaction endpoint at /interactions.
-9. visit your worker at the path /setup-globals to set up global app commands
+8. Take the output worker URL, "discord-link-archiver.YOURSUBDOMAIN.workers.dev/", and put it into the Discord Developer portal as an interactions endpoint the interaction endpoint at /interactions.
+9. visit your worker at the path `/setup-globals/:DISCORD_CLIENT_PUB_KEY` to set up global app commands
 9. visit your worker at the path /invite to invite it to your Discord server

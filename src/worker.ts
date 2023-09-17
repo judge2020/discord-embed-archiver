@@ -23,9 +23,13 @@ let archive_state: DiscordArchiveState;
 
 const router = Router<IRequest, StandardArgs>();
 
-router.get('/', (request: IRequest, env: Env) => {
+const PROD_URL = "archiverusercontent.net";
+
+router.get('/', (request: IRequest | Request, env: Env) => {
+	let hostname = request.headers.get("host");
 	return new Response("Discord Embed Archiver\n" +
-		"Currently invite-only. To self-host on Cloudflare Workers: https://github.com/judge2020/discord-embed-archiver");
+		"Currently invite-only. To self-host on Cloudflare Workers: https://github.com/judge2020/discord-embed-archiver\n" +
+		(hostname == PROD_URL ? "DMCA: dmca@" + PROD_URL : ""));
 });
 
 router.get('/invite', (request: IRequest, env: Env) => {

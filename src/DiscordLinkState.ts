@@ -53,7 +53,7 @@ export class DiscordLinkState {
 			await this.DISCORD_IMAGE_BUCKET.put(bucketUrl, (await downloaded_media.response.arrayBuffer()), {
 				httpMetadata: {
 					contentType: downloaded_media.response.headers.get('content-type'),
-					cacheControl: 'public'
+					cacheControl: 'public',
 				}
 			});
 

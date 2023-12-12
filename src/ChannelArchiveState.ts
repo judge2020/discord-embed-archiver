@@ -65,6 +65,7 @@ export class DiscordArchiveState {
 					channel_state.earliest_archive = message.id;
 				}
 			}
+			await this.setArchiveState(channel_state);
 		}
 		else {
 			// iterate messages
@@ -119,7 +120,15 @@ export class DiscordArchiveState {
 				// sleep 1 second to give queue some breathing room
 				await sleep(1234);
 			}
+			await this.setArchiveState(channel_state);
+			if (!shouldStop) {
+				// we didn't run out of messages, we hit channel limit. immediately requeue
+				await sleep(3245); // ensure KV store write consistency
+				await env.CHANNEL_QUEUE.send({
+					channel_id: channel_id,
+					backfill: backfill,
+				})
+			}
 		}
-		await this.setArchiveState(channel_state);
 	}
 }

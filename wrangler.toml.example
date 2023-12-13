@@ -1,7 +1,6 @@
 name = "discord-link-archiver"
 main = "src/worker.ts"
 compatibility_date = "2023-08-14"
-usage_model = "unbound"
 
 [vars]
 ARCHIVE_CHANNELS = '["1111111111122222222", "3333333344444444444"]'
@@ -9,9 +8,9 @@ DISCORD_CLIENT_ID= "1140704569194729592"
 DISCORD_CLIENT_PUB_KEY = "xyz1234xyz1234xyz1234xyz1234xyz1234"
 R2_BASE_URL = "https://pub-X.r2.dev"
 
-# Change Usage to 'bundled' if you cannot enable unbound for some reason (although the script works best with unbound)
+# Change Usage to 'bundled' if you cannot enable standard pricing for some reason (although the script works best with unbound)
 # also change queue batch sizes below if you are using bundled
-USAGE_MODEL = 'unbound'
+USAGE_MODEL = 'standard'
 
 [triggers]
 crons = [ "48 */2 * * *", "*/15 * * * *" ]

@@ -36,8 +36,8 @@ export class DiscordArchiveState {
 		// In bundled mode, only 50 subrequests are allowed
 		// In unbound mode, 1000 are allowed
 		// Sending to queue is a subrequest, and so is KV get/put requests
-		let discord_limit = env.USAGE_MODEL == 'unbound' ? 50 : 40;
-		let max_channel_requests = env.USAGE_MODEL == 'unbound' ? 8 : 1;
+		let discord_limit = env.USAGE_MODEL == 'standard' ? 50 : 40;
+		let max_channel_requests = env.USAGE_MODEL == 'standard' ? 8 : 1;
 		let current_requests = 0;
 
 		console.log(channel_state);

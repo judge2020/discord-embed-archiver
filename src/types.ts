@@ -93,3 +93,10 @@ export type RateLimitHeaders = {
 	reset_after: Number;
 	reset_bucket: Number;
 }
+
+export type UserFacingArchiveRetrievalResult = {
+	original_url: string;
+	archive_url: string;
+}
+
+export type UserFacingArchiveRetrievalResultList = UserFacingArchiveRetrievalResult[];

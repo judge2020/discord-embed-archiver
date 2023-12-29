@@ -27,7 +27,7 @@ const PROD_URL = "archiverusercontent.net";
 
 router.get('/', (request: IRequest | Request, env: Env) => {
 	let hostname = request.headers.get("host");
-	return new Response("Discord Embed Archiver\n" +
+	return new Response("Discord Embed Archiver. Powered by Cloudflare and R2.\n" +
 		"Currently invite-only. To self-host on Cloudflare Workers: https://github.com/judge2020/discord-embed-archiver\n" +
 		(hostname == PROD_URL ? "DMCA: dmca@" + PROD_URL : ""));
 });
@@ -43,6 +43,7 @@ router.get('/invite', (request: IRequest, env: Env) => {
 
 
 router.get('/setup-globals/:secret', async (request: IRequest, env: Env) => {
+	// Not the best way to do this, but the pub key is mostly confidential.
 	if (request.params.secret != env.DISCORD_CLIENT_PUB_KEY) {
 		return new Response("", {status: 401});
 	}

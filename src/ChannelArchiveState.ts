@@ -1,7 +1,7 @@
-import { KVNamespace, R2Bucket } from '@cloudflare/workers-types';
-import { ArchivedImage, ArchiveRequest, ChannelArchiveState, DSnowflake, Env, MessageMetadataRequest } from './types';
-import { downloadMedia, getFreshUrlForBucket, getRateHeaders, messageJsonKey, sleep } from './helpers';
-import { APIEmbed, APIMessage, RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
+import { KVNamespace } from '@cloudflare/workers-types';
+import { ArchiveRequest, ChannelArchiveState, DSnowflake, Env } from './types';
+import { getRateHeaders, sleep } from './helpers';
+import { RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
 import DiscordApi from './DiscordApi';
 
 const DEFAULT_EARLIEST = "99999999999999999999999";

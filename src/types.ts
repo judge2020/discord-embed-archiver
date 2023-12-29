@@ -1,6 +1,4 @@
 import { KVNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
-import DiscordApi from './DiscordApi';
-import { DiscordLinkState } from './DiscordLinkState';
 import { APIMessage } from 'discord-api-types/v10';
 import { APIEmbed } from 'discord-api-types/payloads/v10/channel';
 
@@ -22,7 +20,7 @@ export type ChannelListRequest = {
 	backfill: boolean;
 }
 
-export type ArchivedImage = {
+export type ArchivedMedia = {
 	image_key: string;
 	source_url: string;
 	contentDisposition?: string;
@@ -36,7 +34,7 @@ export type ErrorMessage = {
 }
 
 export type MessageMetadataRequest = {
-	images: ArchivedImage[];
+	images: ArchivedMedia[];
 	errors: ErrorMessage[] | null;
 	timestamp: string;
 	original_embeds: APIEmbed[] | null;

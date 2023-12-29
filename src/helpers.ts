@@ -69,8 +69,15 @@ export function getFreshUrlForBucket(channel_id: DSnowflake, message_id: DSnowfl
 		+ Math.random().toString(36).slice(2, 9) + Math.random().toString(36).slice(2, 9);
 }
 
-export function getImageFromEmbed(embed: APIEmbed): EmbedArchiveRequest | null {
-	if (embed.image && embed.url && embed.image.proxy_url && embed.image.url) {
+export function getMediaFromEmbed(embed: APIEmbed): EmbedArchiveRequest | null {
+	if (embed.video && embed.url && embed.video.proxy_url && embed.video.url) {
+		return {
+			proxy_url: embed.video.proxy_url,
+			url: embed.video.url,
+			orig_url: fixTwitter(embed.url),
+		}
+	}
+	else if (embed.image && embed.url && embed.image.proxy_url && embed.image.url) {
 		return {
 			proxy_url: embed.image.proxy_url,
 			url: embed.image.url,
@@ -80,12 +87,6 @@ export function getImageFromEmbed(embed: APIEmbed): EmbedArchiveRequest | null {
 		return {
 			proxy_url: embed.thumbnail.proxy_url,
 			url: embed.thumbnail.url,
-			orig_url: fixTwitter(embed.url),
-		}
-	} else if (embed.video && embed.url && embed.video.proxy_url && embed.video.url) {
-		return {
-			proxy_url: embed.video.proxy_url,
-			url: embed.video.url,
 			orig_url: fixTwitter(embed.url),
 		}
 	}

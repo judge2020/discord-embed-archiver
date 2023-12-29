@@ -1,7 +1,7 @@
 import { KVNamespace, R2Bucket } from '@cloudflare/workers-types';
-import { ArchivedImage, ArchiveRequest, DSnowflake, ErrorMessage, MessageMetadataRequest } from './types';
-import { downloadMedia, getFreshUrlForBucket, getImageFromEmbed, messageJsonKey } from './helpers';
-import { APIEmbed, APIMessage, Snowflake } from 'discord-api-types/v10';
+import { ArchivedMedia, ArchiveRequest, DSnowflake, ErrorMessage, MessageMetadataRequest } from './types';
+import { downloadMedia, getFreshUrlForBucket, getMediaFromEmbed, messageJsonKey } from './helpers';
+import { Snowflake } from 'discord-api-types/v10';
 
 export class DiscordLinkState {
 
@@ -30,11 +30,11 @@ export class DiscordLinkState {
 	}
 
 	async archiveMessage(request: ArchiveRequest): Promise<MessageMetadataRequest> {
-		let images: ArchivedImage[] = [];
+		let mediaObjects: ArchivedMedia[] = [];
 		let errors: ErrorMessage[] = [];
 
 		for (const embed of request.message.embeds) {
-			let extracted_embed = getImageFromEmbed(embed);
+			let extracted_embed = getMediaFromEmbed(embed);
 			if (!extracted_embed) {
 				console.log("No image in embed " + request.message.id);
 				continue;
@@ -57,7 +57,7 @@ export class DiscordLinkState {
 				}
 			});
 
-			images.push({
+			mediaObjects.push({
 				image_key: bucketUrl,
 				source_url: downloaded_media.used_backup ? extracted_embed.proxy_url : extracted_embed.url,
 				contentType: downloaded_media.response.headers.get('content-type'),
@@ -67,7 +67,7 @@ export class DiscordLinkState {
 		}
 
 		let returned_metadata: MessageMetadataRequest = {
-			images: images,
+			images: mediaObjects,
 			errors : errors.length > 0 ? errors : null,
 			timestamp: new Date().toISOString(),
 			original_embeds: request.message.embeds,

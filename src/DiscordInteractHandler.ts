@@ -1,7 +1,6 @@
 import DiscordApi from './DiscordApi';
 import { DiscordLinkState } from './DiscordLinkState';
 import {
-	APIActionRowComponent,
 	APIEmbed,
 	APIInteraction,
 	APIInteractionResponse, APIMessage, APIModalInteractionResponse,
@@ -9,12 +8,11 @@ import {
 	InteractionResponseType,
 	InteractionType
 } from 'discord-api-types/v10';
-import { ArchiveRequest, DSnowflake, Env, ErrorMessage, UserFacingArchiveRetrievalResultList } from './types';
+import { ArchiveRequest, DSnowflake, Env, UserFacingArchiveRetrievalResultList } from './types';
 import {
 	getDiscordRelativeTimeEmbed,
 	getMessageLink, parseChannels
 } from './helpers';
-import { APIModalActionRowComponent, APITextInputComponent } from 'discord-api-types/payloads/v10/channel';
 
 const MESSAGE_COMMAND_RETRIEVE = 'Retrieve Archive';
 const MESSAGE_COMMAND_ARCHIVE_NOW = 'Archive Now';
@@ -71,25 +69,23 @@ function successInteractModalResponse(retrievalResults: UserFacingArchiveRetriev
 	}];
 
 	retrievalResults.forEach((result) => {
-		// Create structure for 'Image URL'
 		components.push({
 			type: 1,
 			components: [{
 				type: 4,
 				custom_id: "unused_" + cur,
-				label: `Image ${cur} URL`,
+				label: `Media ${cur} URL`,
 				style: 1,
 				value: result.original_url,
 			}]
 		});
 
-		// Create structure for 'Image archive URL'
 		components.push({
 			type: 1,
 			components: [{
 				type: 4,
 				custom_id: "unusedarc_" + cur,
-				label: `Image ${cur} archive URL`,
+				label: `Media ${cur} archive URL`,
 				style: 1,
 				value: result.archive_url,
 			}]
@@ -102,7 +98,7 @@ function successInteractModalResponse(retrievalResults: UserFacingArchiveRetriev
 		type: InteractionResponseType.Modal,
 		data: {
 			custom_id: '_unused',
-			title: "Image Links (embed)",
+			title: "Media Links (embed)",
 			components: components
 		}
 	};
@@ -179,17 +175,17 @@ export class DiscordInteractHandler {
 
 		let want_embeds = false;
 		if (want_embeds) {
-			let out_embeds: APIEmbed[] = archive_metadata.images.map(image => ({
+			let out_embeds: APIEmbed[] = archive_metadata.images.map(media => ({
 				fields: [
 					{
 						inline: true,
 						name: "Original URL",
-						value: image.source_url,
+						value: media.source_url,
 					},
 					{
 						inline: true,
 						name: "Archive URL",
-						value: `${this.env.R2_BASE_URL}/${image.image_key}`,
+						value: `${this.env.R2_BASE_URL}/${media.image_key}`,
 					}
 				]
 			}));
@@ -197,9 +193,9 @@ export class DiscordInteractHandler {
 			return successInteractResponse(`${getMessageLink(json.guild_id!, json.channel_id!, message.id)} archived ${getDiscordRelativeTimeEmbed(archive_metadata.timestamp)}`, out_embeds);
 		}
 		else {
-			let out_results: UserFacingArchiveRetrievalResultList = archive_metadata.images.map(image => ({
-				original_url: image.source_url,
-				archive_url: `${this.env.R2_BASE_URL}/${image.image_key}`
+			let out_results: UserFacingArchiveRetrievalResultList = archive_metadata.images.map(media => ({
+				original_url: media.source_url,
+				archive_url: `${this.env.R2_BASE_URL}/${media.image_key}`
 			}));
 
 			// We must use a model for now
@@ -228,18 +224,18 @@ export class DiscordInteractHandler {
 		let archived = await this.discordLinkState.archiveMessage(archiveRequest);
 
 		let out__embeds: APIEmbed[] = [];
-		for (let image of archived.images) {
+		for (let media of archived.images) {
 			out__embeds.push({
 				fields: [
 					{
 						inline: true,
-						name: 'Original URL_' + archived.images.indexOf(image).toString(),
-						value: image.source_url
+						name: 'Original URL_' + archived.images.indexOf(media).toString(),
+						value: media.source_url
 					},
 					{
 						inline: true,
-						name: 'Archive URL_' + archived.images.indexOf(image).toString(),
-						value: `${this.env.R2_BASE_URL}/${image.image_key}`
+						name: 'Archive URL_' + archived.images.indexOf(media).toString(),
+						value: `${this.env.R2_BASE_URL}/${media.image_key}`
 					}
 				]
 			});

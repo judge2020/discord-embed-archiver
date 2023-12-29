@@ -3,10 +3,10 @@ import { error, IRequest, json, Router } from 'itty-router';
 import DiscordApi from './DiscordApi';
 import {verifyKey} from 'discord-interactions';
 import { Message, MessageBatch } from '@cloudflare/workers-types';
-import { getImageFromEmbed, parseChannels, sleep } from './helpers';
+import { getMediaFromEmbed, parseChannels, sleep } from './helpers';
 import { DiscordLinkState } from './DiscordLinkState';
 import { ArchiveRequest, ChannelListRequest, Env, StandardArgs } from './types';
-import { RESTGetAPIChannelMessageResult, RESTGetAPIChannelMessagesResult } from 'discord-api-types/v10';
+import { RESTGetAPIChannelMessageResult } from 'discord-api-types/v10';
 import { DiscordInteractHandler } from './DiscordInteractHandler';
 import { DiscordArchiveState } from './ChannelArchiveState';
 
@@ -96,7 +96,7 @@ router.get('/embeds/:secret/:channel_id/:message_id', async (request, env) => {
 	let message: RESTGetAPIChannelMessageResult = await (await discord.getMessage(channel_id, message_id)).json();
 	let embeds = [];
 	for (const embed of message.embeds) {
-		embeds.push(getImageFromEmbed(embed));
+		embeds.push(getMediaFromEmbed(embed));
 	}
 	return embeds;
 });

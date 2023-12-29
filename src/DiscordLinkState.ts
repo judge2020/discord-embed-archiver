@@ -36,7 +36,7 @@ export class DiscordLinkState {
 		for (const embed of request.message.embeds) {
 			let extracted_embed = getMediaFromEmbed(embed);
 			if (!extracted_embed) {
-				console.log("No image in embed " + request.message.id);
+				console.log('No image in embed ' + request.message.id);
 				continue;
 			}
 			let downloaded_media = await downloadMedia(extracted_embed.url, extracted_embed.proxy_url);
@@ -45,7 +45,7 @@ export class DiscordLinkState {
 				errors.push({
 					message: `failed media download: ${downloaded_media.response.statusText} | ${downloaded_media.response_backup?.statusText}`,
 					extra: (await downloaded_media.response.text()) + ' | ' + (downloaded_media.response_backup ? await downloaded_media.response_backup.text() : '')
-				})
+				});
 				continue;
 			}
 			let bucketUrl = getFreshUrlForBucket(request.channel_id, request.message.id);
@@ -53,7 +53,7 @@ export class DiscordLinkState {
 			await this.DISCORD_IMAGE_BUCKET.put(bucketUrl, (await downloaded_media.response.arrayBuffer()), {
 				httpMetadata: {
 					contentType: downloaded_media.response.headers.get('content-type'),
-					cacheControl: 'public',
+					cacheControl: 'public'
 				}
 			});
 
@@ -68,9 +68,9 @@ export class DiscordLinkState {
 
 		let returned_metadata: MessageMetadataRequest = {
 			images: mediaObjects,
-			errors : errors.length > 0 ? errors : null,
+			errors: errors.length > 0 ? errors : null,
 			timestamp: new Date().toISOString(),
-			original_embeds: request.message.embeds,
+			original_embeds: request.message.embeds
 		};
 
 		await this.setMessageMetadata(returned_metadata, request.message.id);

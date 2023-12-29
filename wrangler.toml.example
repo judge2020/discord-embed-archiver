@@ -12,6 +12,13 @@ R2_BASE_URL = "https://pub-X.r2.dev"
 # also change queue batch sizes below if you are using bundled
 USAGE_MODEL = 'standard'
 
+# See README for presigned URL usage and tradeoffs
+WANT_PRESIGNED = false
+# 5 minutes
+PRESIGNED_EXPIRES = 300
+PRESIGNED_BUCKET_NAME = ""
+PRESIGNED_BUCKET_ACCOUNT_ID = ""
+
 [triggers]
 crons = [ "48 */2 * * *", "*/15 * * * *" ]
 

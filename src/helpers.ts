@@ -1,5 +1,6 @@
 import { DownloadMediaResult, DSnowflake, EmbedArchiveRequest, RateLimitHeaders } from './types';
 import { APIEmbed, Snowflake } from 'discord-api-types/v10';
+import { AwsClient } from 'aws4fetch';
 
 const twitter_hostnames = [
 	"twitter.com",
@@ -119,4 +120,25 @@ export function getDiscordRelativeTimeEmbed(unix_timestamp: string|number) {
 		unix_timestamp = getUnixTimestampFromIsoString(unix_timestamp.toString());
 	}
 	return `<t:${unix_timestamp}:R>`;
+}
+
+export async function getS3SignedUrl(accessKeyId, secretAccessKey, expiresIn, bucketName, accountId, pathName): Promise<string> {
+	const r2 = new AwsClient({
+		accessKeyId: accessKeyId,
+		secretAccessKey: secretAccessKey,
+	});
+	const url = new URL(
+		`https://${bucketName}.${accountId}.r2.cloudflarestorage.com`
+	);
+	url.searchParams.set("X-Amz-Expires", expiresIn);
+	url.pathname = pathName;
+	const signed = await r2.sign(
+		new Request(url, {
+			method: "GET",
+		}),
+		{
+			aws: { signQuery: true },
+		}
+	);
+	return signed.url;
 }

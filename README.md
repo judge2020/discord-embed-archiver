@@ -62,7 +62,7 @@ npx wrangler queues create discord-download-queue
 npx wrangler queues create channel-list-queue
 ```
 
-7. fill out the remaining [vars] in wrangler.toml. The channels variable is a string representing a JSON array of channel names (string[])
+7. fill out the remaining [vars] in wrangler.toml. The channels variable is a string representing a JSON array of channel names (string[]).
 
 Note: thread IDs are valid channel IDs.
 
@@ -70,3 +70,24 @@ Note: thread IDs are valid channel IDs.
 9. Take the output worker URL, "discord-link-archiver.YOURSUBDOMAIN.workers.dev/", and put it into the Discord Developer portal as an interactions endpoint and append `/interactions`.
 10. visit your worker at the path `/setup-globals/:DISCORD_CLIENT_PUB_KEY` to set up global app commands
 11. visit your worker at the path /invite to invite it to your Discord server
+
+
+### Presigned URLs setup
+
+By using presigned URLs, you can avoid people hotlinking your images and using up your R2 quota. In addition, you no longer needs
+
+Cons:
+- Cannot use a custom domain (yet) - nor can you use r2.dev
+- Unknown if the output URL is subject to rate limiting
+- Your Cloudflare account ID will be revealed. This is not strictly a problem, and [Cloudflare has previously said](https://github.com/cloudflare/wrangler-legacy/issues/209#issuecomment-541654484) that all values in wrangler.toml are fine to be committed, just something to consider.
+
+[Create a R2 API Token](https://dash.cloudflare.com/?to=/:account/r2/api-tokens/create). It only needs 'Object Read only' since it's only used for creating presigned URLs, not writing images to the bucket. In addition, you can limit its access to the specified R2 bucket.
+
+```bash
+npx wrangler secret put PRESIGNED_AWS_KEY_ID
+npx wrangler secret put PRESIGNED_AWS_SECRET_KEY
+```
+
+Next, set `WANT_PRESIGNED` to `true` and fill out the entries prefixed with `PRESIGNED_` in `wrangler.toml`.
+
+Be sure to turn off public access on your bucket and disconnect any custom domains, as they always enable public access to everything when connected.

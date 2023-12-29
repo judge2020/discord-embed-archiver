@@ -50,8 +50,14 @@ export type ChannelArchiveState = {
 export interface Env {
 	// SECRETS
 	DISCORD_TOKEN: string;
+	PRESIGNED_AWS_KEY_ID: string | null;
+	PRESIGNED_AWS_SECRET_KEY: string | null;
 
 	// VARS
+	WANT_PRESIGNED: boolean;
+	PRESIGNED_EXPIRES: number;
+	PRESIGNED_BUCKET_NAME: string;
+	PRESIGNED_BUCKET_ACCOUNT_ID: string;
 	ARCHIVE_CHANNELS: string;
 	DISCORD_CLIENT_ID: string;
 	DISCORD_CLIENT_PUB_KEY: string;

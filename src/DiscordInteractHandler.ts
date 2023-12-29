@@ -11,7 +11,7 @@ import {
 import { ArchiveRequest, DSnowflake, Env, UserFacingArchiveRetrievalResultList } from './types';
 import {
 	getDiscordRelativeTimeEmbed,
-	getMessageLink, parseChannels
+	getMessageLink, getS3SignedUrl, parseChannels
 } from './helpers';
 
 const MESSAGE_COMMAND_RETRIEVE = 'Retrieve Archive';
@@ -19,18 +19,18 @@ const MESSAGE_COMMAND_ARCHIVE_NOW = 'Archive Now';
 
 const MESSAGE_COMMAND_RETRIEVE_OBJECT = {
 	type: ApplicationCommandType.Message,
-	name: MESSAGE_COMMAND_RETRIEVE,
+	name: MESSAGE_COMMAND_RETRIEVE
 };
 
 const MESSAGE_COMMAND_ARCHIVE_NOW_OBJECT = {
 	type: ApplicationCommandType.Message,
-	name: MESSAGE_COMMAND_ARCHIVE_NOW,
+	name: MESSAGE_COMMAND_ARCHIVE_NOW
 };
 
 const GLOBAL_COMMAND_OBJECTS = [
 	MESSAGE_COMMAND_RETRIEVE_OBJECT,
-	MESSAGE_COMMAND_ARCHIVE_NOW_OBJECT,
-]
+	MESSAGE_COMMAND_ARCHIVE_NOW_OBJECT
+];
 
 function errorInteractResponse(content: string): APIInteractionResponse {
 	return {
@@ -38,7 +38,7 @@ function errorInteractResponse(content: string): APIInteractionResponse {
 		data: {
 			content: content,
 			flags: 64,
-			allowed_mentions: { parse: []}
+			allowed_mentions: { parse: [] }
 		}
 	};
 }
@@ -61,10 +61,10 @@ function successInteractModalResponse(retrievalResults: UserFacingArchiveRetriev
 		type: 1,
 		components: [{
 			type: 4,
-			custom_id: "unusedbase",
-			"label": "info",
+			custom_id: 'unusedbase',
+			'label': 'info',
 			style: 2,
-			value: "This is only an embed because Discord has a real problem with ephemeral messages: if you scroll back too far, interactions that respond with an ephemeral messages will not be accessible since they disappear when you return to the bottom of your client to look at them. If/when they improve this behavior, this can go back to being a message response instead of this popup modal."
+			value: 'This is only an embed because Discord has a real problem with ephemeral messages: if you scroll back too far, interactions that respond with an ephemeral messages will not be accessible since they disappear when you return to the bottom of your client to look at them. If/when they improve this behavior, this can go back to being a message response instead of this popup modal.'
 		}]
 	}];
 
@@ -73,10 +73,10 @@ function successInteractModalResponse(retrievalResults: UserFacingArchiveRetriev
 			type: 1,
 			components: [{
 				type: 4,
-				custom_id: "unused_" + cur,
+				custom_id: 'unused_' + cur,
 				label: `Media ${cur} URL`,
 				style: 1,
-				value: result.original_url,
+				value: result.original_url
 			}]
 		});
 
@@ -84,10 +84,10 @@ function successInteractModalResponse(retrievalResults: UserFacingArchiveRetriev
 			type: 1,
 			components: [{
 				type: 4,
-				custom_id: "unusedarc_" + cur,
+				custom_id: 'unusedarc_' + cur,
 				label: `Media ${cur} archive URL`,
 				style: 1,
-				value: result.archive_url,
+				value: result.archive_url
 			}]
 		});
 
@@ -98,7 +98,7 @@ function successInteractModalResponse(retrievalResults: UserFacingArchiveRetriev
 		type: InteractionResponseType.Modal,
 		data: {
 			custom_id: '_unused',
-			title: "Media Links (embed)",
+			title: 'Media Links (embed)',
 			components: components
 		}
 	};
@@ -123,9 +123,8 @@ export class DiscordInteractHandler {
 		if (json.type == InteractionType.Ping) {
 			return {
 				type: InteractionResponseType.Pong
-			}
-		}
-		else if (json.type == InteractionType.ApplicationCommand) {
+			};
+		} else if (json.type == InteractionType.ApplicationCommand) {
 			// noinspection TypeScriptUnresolvedReference Seems to not include messages hmm
 			let message = json.data.resolved.messages[Object.keys(json.data.resolved.messages)[0]];
 			switch (json.data.name) {
@@ -137,16 +136,27 @@ export class DiscordInteractHandler {
 					return {
 						type: InteractionResponseType.ChannelMessageWithSource,
 						data: {
-							content: "Responding to message name" + json.data.name + " with " + JSON.stringify(json.data),
+							content: 'Responding to message name' + json.data.name + ' with ' + JSON.stringify(json.data),
 							flags: 64,
-							allowed_mentions: { parse: []}
+							allowed_mentions: { parse: [] }
 						}
-					}
+					};
 			}
 		}
 		return {
 			type: InteractionResponseType.Pong
-		}
+		};
+	}
+
+	private async getArchiveUrl(image_key: string) {
+		return this.env.WANT_PRESIGNED ? await getS3SignedUrl(
+			this.env.PRESIGNED_AWS_KEY_ID,
+			this.env.PRESIGNED_AWS_SECRET_KEY,
+			this.env.PRESIGNED_EXPIRES,
+			this.env.PRESIGNED_BUCKET_NAME,
+			this.env.PRESIGNED_BUCKET_ACCOUNT_ID,
+			image_key
+		) : `${this.env.R2_BASE_URL}/${image_key}`;
 	}
 
 	private async handleRetrieve(json: APIInteraction, message: APIMessage): Promise<APIInteractionResponse> {
@@ -154,20 +164,16 @@ export class DiscordInteractHandler {
 		if (archive_metadata == null || archive_metadata.images.length == 0) {
 			let content = `❌ Unable to retrieve archive for ${getMessageLink(json.guild_id!, json.channel_id!, message.id)}. Likely Reason: `;
 			if (message.embeds.length == 0) {
-				content += "No embeds on message. Attachments and non-embedded links are not archived.";
-			}
-			else if (!this.parsedChannels.includes(json.channel_id!)) {
-				content += "Message is not in an approved archiving channel or thread";
-			}
-			else if(archive_metadata?.errors?.length > 0) {
+				content += 'No embeds on message. Attachments and non-embedded links are not archived.';
+			} else if (!this.parsedChannels.includes(json.channel_id!)) {
+				content += 'Message is not in an approved archiving channel or thread';
+			} else if (archive_metadata?.errors?.length > 0) {
 				for (let error_message of archive_metadata?.errors) {
-					content += `\n${error_message.message} (${error_message.extra})`
+					content += `\n${error_message.message} (${error_message.extra})`;
 				}
-			}
-			else if (archive_metadata?.images.length == 0) {
-				content += "Archiving failed for some reason.";
-			}
-			else {
+			} else if (archive_metadata?.images.length == 0) {
+				content += 'Archiving failed for some reason.';
+			} else {
 				content += `Has not been archived yet. \nIf this message has been edited, use the '${MESSAGE_COMMAND_ARCHIVE_NOW}' action.`;
 			}
 			return errorInteractResponse(content);
@@ -175,31 +181,36 @@ export class DiscordInteractHandler {
 
 		let want_embeds = false;
 		if (want_embeds) {
-			let out_embeds: APIEmbed[] = archive_metadata.images.map(media => ({
-				fields: [
-					{
-						inline: true,
-						name: "Original URL",
-						value: media.source_url,
-					},
-					{
-						inline: true,
-						name: "Archive URL",
-						value: `${this.env.R2_BASE_URL}/${media.image_key}`,
-					}
-				]
-			}));
+			let out_embeds = [];
+			for (const media of archive_metadata.images) {
+				out_embeds.push({
+					fields: [
+						{
+							inline: true,
+							name: 'Original URL',
+							value: media.source_url
+						},
+						{
+							inline: true,
+							name: 'Archive URL',
+							value: await this.getArchiveUrl(media.image_key)
+						}
+					]
+				});
+			}
 
 			return successInteractResponse(`${getMessageLink(json.guild_id!, json.channel_id!, message.id)} archived ${getDiscordRelativeTimeEmbed(archive_metadata.timestamp)}`, out_embeds);
-		}
-		else {
-			let out_results: UserFacingArchiveRetrievalResultList = archive_metadata.images.map(media => ({
-				original_url: media.source_url,
-				archive_url: `${this.env.R2_BASE_URL}/${media.image_key}`
-			}));
+		} else {
+			let out_results: UserFacingArchiveRetrievalResultList = [];
+			for (const media of archive_metadata.images) {
+				out_results.push({
+					original_url: media.source_url,
+					archive_url: await this.getArchiveUrl(media.image_key)
+				});
+			}
+			return successInteractModalResponse(out_results);
 
 			// We must use a model for now
-			return successInteractModalResponse(out_results);
 
 		}
 	}
@@ -215,7 +226,7 @@ export class DiscordInteractHandler {
 
 		let archiveRequest: ArchiveRequest = {
 			channel_id: json.channel_id!,
-			message: message,
+			message: message
 		};
 		if (!archiveRequest) {
 			return errorInteractResponse(`❌ No embeds on message ${getMessageLink(json.guild_id!, json.channel_id!, message.id)}. Attachments and non-embedded links are not archived.`);
@@ -235,7 +246,7 @@ export class DiscordInteractHandler {
 					{
 						inline: true,
 						name: 'Archive URL_' + archived.images.indexOf(media).toString(),
-						value: `${this.env.R2_BASE_URL}/${media.image_key}`
+						value: await this.getArchiveUrl(media.image_key)
 					}
 				]
 			});

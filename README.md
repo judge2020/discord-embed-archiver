@@ -10,7 +10,7 @@ Desired functionality:
 - [X] Image archive retrieval: Take a message ID and tie it back to (a number of) archived embed images (This will likely be achieved by integrating DiscordApi Interactions where a message button opens the archived image URL in-browser)
 - [X] Cron: every 2 hours, go through the channels configured and archive all recent embeds
 - [X] Backfill: A way to trigger backfilling an entire channel using a slow queue (to avoid rate limits)
-- [ ] Addressing issues of scale
+- [X] Addressing issues of scale
 - [ ] Code cleanup and organization
 
 Possibly:
@@ -74,7 +74,7 @@ Note: thread IDs are valid channel IDs.
 
 ### Presigned URLs setup
 
-By using presigned URLs, you can avoid people hotlinking your images and using up your R2 quota. In addition, you no longer needs
+By using presigned URLs, you can avoid people hotlinking your images and using up your R2 quota. In addition, R2_BASE_URL will no longer be used.
 
 Cons:
 - Cannot use a custom domain (yet) - nor can you use r2.dev

@@ -110,7 +110,7 @@ export class DiscordArchiveState {
 					await env.DOWNLOAD_QUEUE.send(archiveRequest);
 					if (backfill) {
 						if (BigInt(channel_state.earliest_archive || DEFAULT_EARLIEST) > BigInt(message.id)) {
-							channel_state.latest_archive = message.id
+							channel_state.earliest_archive = message.id;
 						}
 					}
 					else if (BigInt(channel_state.latest_archive || DEFAULT_LATEST) < BigInt(message.id)) {

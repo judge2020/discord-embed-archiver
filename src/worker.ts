@@ -158,7 +158,7 @@ export default {
 						await archive_state.processCron(request.channel_id, discord, env, request.backfill);
 					}
 					catch (e) {
-						console.log(`Failed to archive channel ${request.channel_id} with error ${e.toString()} | backfill: ${request.backfill}`, e.stack)
+						console.error(`Failed to archive channel ${request.channel_id} with error ${e.toString()} | backfill: ${request.backfill}`, e.stack)
 					}
 				}
 				return;

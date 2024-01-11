@@ -30,6 +30,7 @@ export class DiscordArchiveState {
 	async processCron(channel_id: DSnowflake, discord: DiscordApi, env: Env, backfill = false) {
 		let channel_state = await this.getArchiveState(channel_id);
 		if (backfill && channel_state?.backfill_done) {
+			console.log(`Backfill requested but is done for channel id ${channel_id}`);
 			return;
 		}
 
@@ -42,6 +43,7 @@ export class DiscordArchiveState {
 
 		console.log(channel_state);
 		if (!channel_state) {
+			console.log(`Created channel state for ${channel_id}`)
 			channel_state = {
 				channel_id: channel_id,
 				earliest_archive: DEFAULT_EARLIEST,

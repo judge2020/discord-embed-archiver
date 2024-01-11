@@ -107,11 +107,16 @@ router.get('/backfill/:secret/:channel_id', async (request, env, discord) => {
 		return new Response("", {status: 401});
 	}
 	await env.CHANNEL_QUEUE.send({
-		channel_id: request.params.channel_id,
+		channel_id: String(request.params.channel_id),
 		backfill: true,
 	})
+	return new Response("ok");
+
 })
 
+router.all('*', () => {
+	return new Response("default route, 404", {status: 404});
+})
 
 // noinspection JSUnusedGlobalSymbols
 export default {

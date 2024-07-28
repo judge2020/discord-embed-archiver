@@ -3,12 +3,12 @@ import { DiscordLinkState } from './DiscordLinkState';
 import {
 	APIEmbed,
 	APIInteraction,
-	APIInteractionResponse, APIMessage, APIModalInteractionResponse,
+	APIInteractionResponse, APIMessage,
 	ApplicationCommandType,
 	InteractionResponseType,
 	InteractionType
 } from 'discord-api-types/v10';
-import { ArchiveRequest, DSnowflake, Env, UserFacingArchiveRetrievalResultList } from './types';
+import { ArchiveRequest, DSnowflake, Env } from './types';
 import {
 	getDiscordRelativeTimeEmbed,
 	getMessageLink, getS3SignedUrl, parseChannels
@@ -51,55 +51,6 @@ function successInteractResponse(content: string, embeds: APIEmbed[] = []): APII
 			embeds: embeds,
 			flags: 64,
 			allowed_mentions: { parse: [] }
-		}
-	};
-}
-
-function successInteractModalResponse(retrievalResults: UserFacingArchiveRetrievalResultList): APIModalInteractionResponse {
-	let cur = 0;
-	let components = [{
-		type: 1,
-		components: [{
-			type: 4,
-			custom_id: 'unusedbase',
-			'label': 'info',
-			style: 2,
-			value: 'This is only an embed because Discord has a real problem with ephemeral messages: if you scroll back too far, interactions that respond with an ephemeral messages will not be accessible since they disappear when you return to the bottom of your client to look at them. If/when they improve this behavior, this can go back to being a message response instead of this popup modal.'
-		}]
-	}];
-
-	retrievalResults.forEach((result) => {
-		components.push({
-			type: 1,
-			components: [{
-				type: 4,
-				custom_id: 'unused_' + cur,
-				label: `Media ${cur} URL`,
-				style: 1,
-				value: result.original_url
-			}]
-		});
-
-		components.push({
-			type: 1,
-			components: [{
-				type: 4,
-				custom_id: 'unusedarc_' + cur,
-				label: `Media ${cur} archive URL`,
-				style: 1,
-				value: result.archive_url
-			}]
-		});
-
-		cur += 1;
-	});
-
-	return {
-		type: InteractionResponseType.Modal,
-		data: {
-			custom_id: '_unused',
-			title: 'Media Links (embed)',
-			components: components
 		}
 	};
 }
@@ -179,40 +130,25 @@ export class DiscordInteractHandler {
 			return errorInteractResponse(content);
 		}
 
-		let want_embeds = false;
-		if (want_embeds) {
-			let out_embeds = [];
-			for (const media of archive_metadata.images) {
-				out_embeds.push({
-					fields: [
-						{
-							inline: true,
-							name: 'Original URL',
-							value: media.source_url
-						},
-						{
-							inline: true,
-							name: 'Archive URL',
-							value: await this.getArchiveUrl(media.image_key)
-						}
-					]
-				});
-			}
-
-			return successInteractResponse(`${getMessageLink(json.guild_id!, json.channel_id!, message.id)} archived ${getDiscordRelativeTimeEmbed(archive_metadata.timestamp)}`, out_embeds);
-		} else {
-			let out_results: UserFacingArchiveRetrievalResultList = [];
-			for (const media of archive_metadata.images) {
-				out_results.push({
-					original_url: media.source_url,
-					archive_url: await this.getArchiveUrl(media.image_key)
-				});
-			}
-			return successInteractModalResponse(out_results);
-
-			// We must use a model for now
-
+		let out_embeds = [];
+		for (const media of archive_metadata.images) {
+			out_embeds.push({
+				fields: [
+					{
+						inline: true,
+						name: 'Original URL',
+						value: media.source_url
+					},
+					{
+						inline: true,
+						name: 'Archive URL',
+						value: await this.getArchiveUrl(media.image_key)
+					}
+				]
+			});
 		}
+		return successInteractResponse(`${getMessageLink(json.guild_id!, json.channel_id!, message.id)} archived ${getDiscordRelativeTimeEmbed(archive_metadata.timestamp)}`, out_embeds);
+
 	}
 
 	private async handleArchiveNow(json: APIInteraction, message: APIMessage): Promise<APIInteractionResponse> {
